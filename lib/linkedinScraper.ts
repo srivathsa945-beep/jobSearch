@@ -88,21 +88,10 @@ export async function searchLinkedInJobs(
       const actorResponse = await client.actor(actorId).get()
       if (actorResponse && actorResponse.id) {
         actor = actorResponse
-        workingActorId = actorId
-        // Extract username from actorId (format: username/actor-name)
-        const actorUsername = actorId.split('/')[0] || 'unknown'
-        console.log(`✅ Actor found: ${actorUsername}/${actor.name || actorId}`)
-        // Try to get input schema to see what parameters it expects
-        try {
-          const inputSchema = await client.actor(actorId).inputSchema()
-          const schemaKeys = Object.keys(inputSchema?.properties || {})
-          console.log(`📋 Actor input schema has ${schemaKeys.length} properties`)
-          if (schemaKeys.length > 0) {
-            console.log(`   Key properties:`, schemaKeys.slice(0, 10).join(', '))
-          }
-        } catch (e) {
-          console.log(`⚠️ Could not fetch input schema (this is okay)`)
-        }
+            workingActorId = actorId
+            // Extract username from actorId (format: username/actor-name)
+            const actorUsername = actorId.split('/')[0] || 'unknown'
+            console.log(`✅ Actor found: ${actorUsername}/${actor.name || actorId}`)
       } else {
         throw new Error(`Actor ${actorId} returned invalid response`)
       }
