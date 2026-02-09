@@ -73,10 +73,12 @@ export async function searchLinkedInJobs(
     
     // Build search parameters for curious_coder/linkedin-jobs-scraper
     // This actor requires 'urls' field with LinkedIn job search URLs
+    // Reduced maxItems for faster results in Vercel serverless environment
     const searchParams: any = {
       urls: [linkedInSearchUrl],  // Required: array of LinkedIn job search URLs
-      maxItems: 250,  // Maximum number of jobs to scrape
-      limit: 250
+      maxItems: 100,  // Reduced for faster scraping in Vercel (was 250)
+      limit: 100,     // Reduced for faster scraping
+      waitForFinish: false  // Don't wait - we'll poll for results
     }
 
     // Verify actor exists and get its input schema
@@ -218,19 +220,20 @@ SOLUTIONS:
       return []
     }
 
-    // Wait for the run to finish (with longer timeout - scraping can take time)
+    // Wait for the run to finish (with timeout optimized for Vercel serverless)
+    // Vercel Pro plan has 60s timeout, Hobby has 10s - we'll use 50s to be safe
     let runResult: any
     try {
-      console.log(`⏳ Waiting for Apify run to complete (this may take 10+ minutes for comprehensive scraping)...`)
+      console.log(`⏳ Waiting for Apify run to complete (timeout: 50 seconds for Vercel compatibility)...`)
       console.log(`   Run ID: ${run.id}`)
       console.log(`   Monitor progress: https://console.apify.com/actors/runs/${run.id}`)
       
-      // Use a longer timeout for comprehensive scraping (10 minutes)
-      // The LinkedIn scraper crawls many pages, so it needs time
+      // Reduced timeout for Vercel serverless functions (50 seconds max)
+      // Vercel Pro: 60s max, Hobby: 10s max - we use 50s to be safe
       runResult = await Promise.race([
-        client.run(run.id).waitForFinish(),
+        client.run(run.id).waitForFinish({ waitSecs: 50 }),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Apify run timeout after 10 minutes')), 600000) // 10 minute timeout
+          setTimeout(() => reject(new Error('Apify run timeout after 50 seconds (Vercel limit)')), 50000) // 50 second timeout
         )
       ]) as { defaultDatasetId: string, status: string }
 
@@ -390,21 +393,32 @@ SOLUTIONS:
         // If we still don't have a valid job URL, try to construct one from job ID
         if (!jobUrl || jobUrl.includes('/jobs/search/')) {
           // Try to extract job ID from various fields
-          const jobId = item.jobId || item.id || item.linkedInJobId
-          if (jobId && typeof jobId === 'string' && jobId.match(/^\d+$/)) {
-            // Construct LinkedIn job URL from job ID
-            jobUrl = `https://www.linkedin.com/jobs/view/${jobId}`
-            applyUrl = `${jobUrl}/apply`
-            console.log(`⚠️ Constructed URL from job ID for: ${item.title || item.jobTitle}`)
-          } else {
-            console.warn(`Skipping job "${item.title || item.jobTitle}" - no valid job URL found. Item keys:`, Object.keys(item))
-            // Don't skip - include it anyway, we'll use a search URL as last resort
-            if (!jobUrl) {
-              const searchQuery = encodeURIComponent(item.title || item.jobTitle || keywords)
-              jobUrl = `https://www.linkedin.com/jobs/search/?keywords=${searchQuery}`
-              applyUrl = jobUrl
-              console.log(`⚠️ Using search URL as fallback for: ${item.title || item.jobTitle}`)
+          const jobId = item.jobId || item.id || item.linkedInJobId || item.job_id
+          if (jobId) {
+            const jobIdStr = String(jobId)
+            // Check if it's numeric (LinkedIn job ID format)
+            if (jobIdStr.match(/^\d+$/)) {
+              // Construct LinkedIn job URL from job ID
+              jobUrl = `https://www.linkedin.com/jobs/view/${jobIdStr}`
+              applyUrl = `${jobUrl}/apply`
+              console.log(`✅ Constructed URL from job ID for: ${item.title || item.jobTitle}`)
+            } else {
+              // Try to extract numeric ID from string
+              const numericId = jobIdStr.match(/\d+/)?.[0]
+              if (numericId) {
+                jobUrl = `https://www.linkedin.com/jobs/view/${numericId}`
+                applyUrl = `${jobUrl}/apply`
+                console.log(`✅ Constructed URL from extracted job ID for: ${item.title || item.jobTitle}`)
+              }
             }
+          }
+          
+          // If still no URL, try to use the search URL as fallback (better than nothing)
+          if (!jobUrl || jobUrl.includes('/jobs/search/')) {
+            const searchQuery = encodeURIComponent(item.title || item.jobTitle || keywords)
+            jobUrl = `https://www.linkedin.com/jobs/search/?keywords=${searchQuery}&location=${encodeURIComponent(location)}`
+            applyUrl = jobUrl
+            console.log(`⚠️ Using search URL as fallback for: ${item.title || item.jobTitle}`)
           }
         }
         

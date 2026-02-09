@@ -76,10 +76,11 @@ export async function searchGoogleJobs(
     
     // Build search parameters for Google Jobs Scraper
     // Check the actor's input schema - typically expects query, location, maxResults
+    // Reduced maxResults for faster scraping in Vercel serverless environment
     const searchParams: any = {
       query: keywords,
       location: location,
-      maxResults: 250,  // Maximum results to fetch
+      maxResults: 100,  // Reduced for faster scraping in Vercel (was 250)
     }
 
     // Verify actor exists
@@ -142,17 +143,19 @@ export async function searchGoogleJobs(
       return []
     }
 
-    // Wait for the run to finish (with timeout)
+    // Wait for the run to finish (with timeout optimized for Vercel serverless)
+    // Vercel Pro plan has 60s timeout, Hobby has 10s - we'll use 50s to be safe
     let runResult: any
     try {
-      console.log(`⏳ Waiting for Apify run to complete (this may take a few minutes)...`)
+      console.log(`⏳ Waiting for Apify run to complete (timeout: 50 seconds for Vercel compatibility)...`)
       console.log(`   Run ID: ${run.id}`)
       console.log(`   Monitor progress: https://console.apify.com/actors/runs/${run.id}`)
       
+      // Reduced timeout for Vercel serverless functions (50 seconds max)
       runResult = await Promise.race([
-        client.run(run.id).waitForFinish(),
+        client.run(run.id).waitForFinish({ waitSecs: 50 }),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Apify run timeout after 10 minutes')), 600000) // 10 minute timeout
+          setTimeout(() => reject(new Error('Apify run timeout after 50 seconds (Vercel limit)')), 50000) // 50 second timeout
         )
       ]) as { defaultDatasetId: string, status: string }
 
