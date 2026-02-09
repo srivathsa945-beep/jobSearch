@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Ensure server-side only packages are properly handled
-  serverComponentsExternalPackages: ['pdf-parse', 'mammoth'],
   // Webpack configuration for Node.js modules
   webpack: (config, { isServer }) => {
     if (isServer) {

@@ -18,8 +18,8 @@ export async function GET(request: NextRequest) {
     console.log(`📅 Date range requested: ${dateRangeParam} days`)
     
     // Search for all Project Manager jobs (no resume needed)
-    // Pass null for resume data since we're searching first, and the date range
-    const result = await searchJobs(null, null, dateRangeParam)
+    // Pass undefined for resume data since we're searching first, and the date range
+    const result = await searchJobs(undefined, undefined, dateRangeParam)
 
     return NextResponse.json({
       success: true,
