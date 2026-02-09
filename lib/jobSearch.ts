@@ -269,32 +269,36 @@ export async function searchJobs(
     console.error('Error details:', error instanceof Error ? error.message : String(error))
   }
 
-  // NO MOCK DATA - Return empty array if all searches fail
-  // User wants only real scraped jobs with legitimate URLs
-  console.log('⚠️ No jobs found from any job source (LinkedIn, Google Jobs).')
-  console.log('')
-  console.log('🔍 DEBUGGING INFO:')
-  console.log('  1. Check APIFY_API_TOKEN is set in .env')
-  console.log('  2. Check APIFY_LINKEDIN_ACTOR_ID is correct')
-  console.log('  3. Verify Apify actors are accessible at https://console.apify.com')
-  console.log('  4. Check server logs above for Apify run IDs and errors')
-  console.log('  5. Common issues:')
-  console.log('     - Apify actor timeout (increase timeout)')
-  console.log('     - LinkedIn blocking scraper (try different actor)')
-  console.log('     - Wrong actor input parameters')
-  console.log('     - Network/firewall issues')
-  console.log('')
-  console.log('💡 TIP: Check the Apify run URLs in the logs above to see detailed error messages')
-  
-  return {
-    jobs: [],
-    totalJobs: 0,
-    dateRange: {
-      from: daysAgo.toISOString(),
-      to: now.toISOString(),
-      fromFormatted: daysAgo.toLocaleDateString(),
-      toFormatted: now.toLocaleDateString()
-    },
-    filtersApplied: []
-  }
+      // NO MOCK DATA - Return empty array if all searches fail
+      // User wants only real scraped jobs with legitimate URLs
+      console.log('⚠️ No jobs found from any job source (LinkedIn, Google Jobs).')
+      console.log('')
+      console.log('🔍 DEBUGGING INFO:')
+      console.log(`  1. APIFY_API_TOKEN is set: ${!!process.env.APIFY_API_TOKEN}`)
+      console.log(`  2. APIFY_LINKEDIN_ACTOR_ID: ${process.env.APIFY_LINKEDIN_ACTOR_ID || 'NOT_SET (using default)'}`)
+      console.log(`  3. APIFY_GOOGLE_ACTOR_ID: ${process.env.APIFY_GOOGLE_ACTOR_ID || 'NOT_SET (using default)'}`)
+      console.log('  4. Verify Apify actors are accessible at https://console.apify.com')
+      console.log('  5. Check server logs above for Apify run IDs and errors')
+      console.log('  6. Common issues:')
+      console.log('     - Apify API token not set in Vercel environment variables')
+      console.log('     - Apify monthly usage limit exceeded')
+      console.log('     - Apify actor timeout (increase timeout)')
+      console.log('     - LinkedIn blocking scraper (try different actor)')
+      console.log('     - Wrong actor input parameters')
+      console.log('     - Network/firewall issues')
+      console.log('')
+      console.log('💡 TIP: Check the Apify run URLs in the logs above to see detailed error messages')
+      console.log('💡 TIP: If deployed on Vercel, ensure environment variables are set in Vercel dashboard')
+      
+      return {
+        jobs: [],
+        totalJobs: 0,
+        dateRange: {
+          from: daysAgo.toISOString(),
+          to: now.toISOString(),
+          fromFormatted: daysAgo.toLocaleDateString(),
+          toFormatted: now.toLocaleDateString()
+        },
+        filtersApplied: []
+      }
 }

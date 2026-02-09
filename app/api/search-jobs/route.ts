@@ -40,10 +40,18 @@ export async function GET(request: NextRequest) {
     const dateRangeParam = searchParams.get('dateRange') || '7'
     const days = parseInt(dateRangeParam) || 7
     const daysAgo = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
+    
+    // Check if it's an environment variable issue
+    const isEnvError = !process.env.APIFY_API_TOKEN || 
+                      errorMessage.includes('APIFY_API_TOKEN') ||
+                      errorMessage.includes('environment variable')
+    
     return NextResponse.json(
       { 
         success: false,
-        error: 'Failed to search jobs',
+        error: isEnvError 
+          ? 'Apify API token not configured. Please set APIFY_API_TOKEN in Vercel environment variables.'
+          : 'Failed to search jobs',
         details: errorMessage,
         jobs: [],
         totalJobs: 0,
