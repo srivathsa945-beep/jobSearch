@@ -34,6 +34,8 @@ export async function GET(request: NextRequest) {
     console.error('Error searching jobs:', error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
     const now = new Date()
+    const { searchParams } = new URL(request.url)
+    const dateRangeParam = searchParams.get('dateRange') || '7'
     const days = parseInt(dateRangeParam) || 7
     const daysAgo = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
     return NextResponse.json(
