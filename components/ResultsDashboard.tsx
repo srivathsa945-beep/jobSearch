@@ -6,10 +6,11 @@ import { useState } from 'react'
 interface ResultsDashboardProps {
   matches: JobMatch[]
   loading: boolean
+  searchInfo?: { role?: string; totalJobs?: number } | null
   onReset: () => void
 }
 
-export default function ResultsDashboard({ matches, loading, onReset }: ResultsDashboardProps) {
+export default function ResultsDashboard({ matches, loading, searchInfo, onReset }: ResultsDashboardProps) {
   const [applyingJobs, setApplyingJobs] = useState<Set<string>>(new Set())
 
   const handleApply = async (match: JobMatch) => {
@@ -65,9 +66,25 @@ export default function ResultsDashboard({ matches, loading, onReset }: ResultsD
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-800">
-          Job Matches ({matches.length} found)
-        </h2>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">
+            Job Matches ({matches.length} found)
+          </h2>
+          {searchInfo && (
+            <div className="mt-2 text-sm text-gray-600">
+              {searchInfo.role && searchInfo.role !== 'Not detected' && (
+                <span className="inline-block mr-4">
+                  <span className="font-semibold">Detected Role:</span> {searchInfo.role}
+                </span>
+              )}
+              {searchInfo.totalJobs !== undefined && (
+                <span>
+                  <span className="font-semibold">Jobs Scanned:</span> {searchInfo.totalJobs}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
         <button
           onClick={onReset}
           className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
@@ -140,7 +157,11 @@ function JobCard({
         <div className="flex-1">
           <h4 className="text-xl font-bold text-gray-800">{match.job.title}</h4>
           <p className="text-gray-600">{match.job.company} • {match.job.location}</p>
-          <p className="text-sm text-gray-500 mt-1">Posted: {new Date(match.job.postedDate).toLocaleDateString()}</p>
+          <div className="flex items-center gap-3 mt-1">
+            <p className="text-sm text-gray-500">Posted: {new Date(match.job.postedDate).toLocaleDateString()}</p>
+            <span className="text-sm text-blue-600 font-medium">•</span>
+            <span className="text-sm text-blue-600 font-medium">{match.job.source}</span>
+          </div>
         </div>
         <div className={`px-4 py-2 rounded-full font-bold ${getScoreColor(match.score)}`}>
           {match.score}% Match
@@ -164,7 +185,7 @@ function JobCard({
 
       {match.matchedSkills.length > 0 && (
         <div className="mb-4">
-          <p className="text-sm font-semibold text-green-700 mb-2">Matched Skills:</p>
+          <p className="text-sm font-semibold text-green-700 mb-2">Matched Keywords ({match.matchedSkills.length}):</p>
           <div className="flex flex-wrap gap-2">
             {match.matchedSkills.map((skill, idx) => (
               <span key={idx} className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
@@ -177,7 +198,7 @@ function JobCard({
 
       {match.missingSkills.length > 0 && (
         <div className="mb-4">
-          <p className="text-sm font-semibold text-orange-700 mb-2">Missing Skills:</p>
+          <p className="text-sm font-semibold text-orange-700 mb-2">Missing Keywords ({match.missingSkills.length}):</p>
           <div className="flex flex-wrap gap-2">
             {match.missingSkills.map((skill, idx) => (
               <span key={idx} className="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded">

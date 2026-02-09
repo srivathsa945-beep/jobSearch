@@ -19,7 +19,7 @@
     "openai": "^4.20.0",
     "axios": "^1.6.0",
     "cheerio": "^1.0.0-rc.12",
-    "puppeteer": "^21.5.0",
+    "apify-client": "^2.8.2",
     "dotenv": "^16.3.1"
   },
   "devDependencies": {

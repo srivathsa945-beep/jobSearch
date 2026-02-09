@@ -3,7 +3,7 @@
 import { useState } from 'react'
 
 interface ResumeUploadProps {
-  onResumeProcessed: (resumeText: string) => void
+  onResumeProcessed: (resumeText: string, jobTitle?: string | null, jobKeywords?: string[]) => void
 }
 
 export default function ResumeUpload({ onResumeProcessed }: ResumeUploadProps) {
@@ -44,12 +44,17 @@ export default function ResumeUpload({ onResumeProcessed }: ResumeUploadProps) {
         body: formData,
       })
 
-      if (!response.ok) {
-        throw new Error('Failed to upload resume')
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || data.details || 'Failed to upload resume')
       }
 
-      const data = await response.json()
-      onResumeProcessed(data.resumeText)
+      if (!data.resumeText) {
+        throw new Error('No resume text extracted from file')
+      }
+
+      onResumeProcessed(data.resumeText, data.jobTitle, data.jobKeywords)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to upload resume')
     } finally {

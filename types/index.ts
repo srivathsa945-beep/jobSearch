@@ -3,6 +3,8 @@ export interface ResumeData {
   skills: string[]
   experience: string[]
   education: string[]
+  jobTitle?: string | null
+  jobKeywords?: string[]
   name?: string
   email?: string
   phone?: string
@@ -18,6 +20,7 @@ export interface JobPosting {
   postedDate: string
   url: string
   applyUrl?: string
+  source: string // e.g., "LinkedIn", "Indeed", "Glassdoor", "Company Website", etc.
 }
 
 export interface JobMatch {

@@ -1,30 +1,32 @@
 # JobSearch - AI-Powered Job Application Assistant
 
-An intelligent web application that automatically scans your resume, finds matching job postings from the last 24 hours, scores them, and can automatically apply to jobs for you.
+An intelligent web application that automatically scans your resume, finds matching job postings from LinkedIn (past week), scores them, and can automatically apply to jobs for you.
 
 ## Features
 
 - 📄 **Resume Upload & Parsing**: Upload PDF or Word documents and extract text, skills, experience, and education
-- 🔍 **Job Search**: Automatically finds job postings posted within the last 24 hours
+- 🔍 **Real LinkedIn Job Search**: Automatically searches LinkedIn for jobs posted in the past week using Apify
 - 🎯 **Smart Matching**: AI-powered algorithm that scores your resume against job requirements
 - 💡 **Recommendations**: Get clear recommendations on whether to apply or skip each job
 - ⚡ **Auto-Application**: Automatically apply to recommended jobs (with manual override option)
 - 📊 **Detailed Analysis**: See matched skills, missing skills, and detailed reasons for each recommendation
+- 🏢 **Job Source Display**: See where each job was posted (LinkedIn, Indeed, etc.)
 
 ## Tech Stack
 
 - **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS
 - **Backend**: Next.js API Routes
 - **Resume Parsing**: pdf-parse, mammoth
-- **Job Matching**: Custom algorithm with keyword matching and scoring
-- **Auto-Application**: Puppeteer (for browser automation)
+- **Job Search**: Apify (LinkedIn scraping)
+- **Job Matching**: Custom algorithm with role-based matching and scoring
+- **Auto-Application**: Framework ready for browser automation
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js 18+ and npm/yarn
-- (Optional) OpenAI API key for enhanced matching
+- Apify account with API token (already configured)
 
 ### Installation
 
@@ -38,12 +40,7 @@ cd JobSearch
 npm install
 ```
 
-3. Create a `.env` file (optional):
-```env
-OPENAI_API_KEY=your_key_here
-MIN_MATCH_SCORE=70
-AUTO_APPLY_ENABLED=true
-```
+3. The `.env` file is already configured with your Apify API token
 
 4. Run the development server:
 ```bash
@@ -67,54 +64,50 @@ npm run dev
 - Structures the data for matching
 
 ### Job Search
-- Currently uses mock job data (for demo)
-- In production, integrate with:
-  - Indeed API
-  - LinkedIn Jobs API
-  - Glassdoor API
-  - Or web scraping (with proper permissions)
+- **Real LinkedIn Jobs**: Uses Apify to scrape LinkedIn for actual job postings
+- Searches jobs posted in the past week
+- Filters by role extracted from your resume
+- Falls back to mock data if Apify is unavailable
 
 ### Matching Algorithm
 The scoring system considers:
-- **Skill Match (40%)**: How many required skills you have
-- **Experience Match (20%)**: Years of experience alignment
-- **Education Match (10%)**: Education requirements
-- **Keyword Overlap (30%)**: Overall keyword similarity
+- **Role/Title Match (50%)**: Most important - matches your job title to job postings
+- **Skill Match (25%)**: How many required skills you have
+- **Experience Match (15%)**: Years of experience alignment
+- **Education Match (5%)**: Education requirements
+- **Keyword Overlap (5%)**: Overall keyword similarity
+
+Jobs that don't match your role are heavily penalized to ensure relevance.
 
 ### Auto-Application
-- Uses Puppeteer to automate browser interactions
-- Fills out application forms automatically
-- Handles file uploads
+- Framework ready for browser automation
+- Currently simulates application process
+- Can be extended with Puppeteer/Playwright for real automation
 - **Note**: Many job sites have anti-automation measures. This feature works best with sites that allow programmatic access.
 
 ## Production Considerations
 
-1. **Job Search Integration**: Replace mock jobs with real APIs:
-   - Indeed Publisher API
-   - LinkedIn Jobs API
-   - Custom web scraping (ensure compliance with ToS)
-
-2. **Enhanced Matching**: 
+1. **Enhanced Matching**: 
    - Use OpenAI embeddings for semantic matching
    - Implement machine learning models
    - Add industry-specific matching
 
-3. **Database**: Store resumes, job matches, and application history
+2. **Database**: Store resumes, job matches, and application history
 
-4. **Authentication**: Add user accounts and secure resume storage
+3. **Authentication**: Add user accounts and secure resume storage
 
-5. **Rate Limiting**: Implement rate limits for job searches and applications
+4. **Rate Limiting**: Implement rate limits for job searches and applications
 
-6. **Error Handling**: Better error handling for failed applications
+5. **Error Handling**: Better error handling for failed applications
 
-7. **Legal Compliance**: Ensure compliance with job site terms of service
+6. **Legal Compliance**: Ensure compliance with job site terms of service
 
 ## Limitations
 
 - Auto-application may not work on all job sites due to anti-automation measures
-- Mock job data is used for demonstration
 - Resume parsing accuracy depends on document format
 - Some job sites require CAPTCHA or manual verification
+- Apify scraping depends on your Apify account credits
 
 ## License
 

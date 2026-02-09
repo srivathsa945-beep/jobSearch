@@ -9,8 +9,9 @@ export default function Home() {
   const [matches, setMatches] = useState<JobMatch[]>([])
   const [loading, setLoading] = useState(false)
   const [resumeUploaded, setResumeUploaded] = useState(false)
+  const [searchInfo, setSearchInfo] = useState<{ role?: string; totalJobs?: number } | null>(null)
 
-  const handleResumeProcessed = async (resumeText: string) => {
+  const handleResumeProcessed = async (resumeText: string, jobTitle?: string | null, jobKeywords?: string[]) => {
     setLoading(true)
     setResumeUploaded(true)
     
@@ -18,11 +19,15 @@ export default function Home() {
       const response = await fetch('/api/process-jobs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resumeText }),
+        body: JSON.stringify({ resumeText, jobTitle, jobKeywords }),
       })
       
       const data = await response.json()
       setMatches(data.matches || [])
+      setSearchInfo({
+        role: data.extractedRole,
+        totalJobs: data.totalJobs
+      })
     } catch (error) {
       console.error('Error processing jobs:', error)
       alert('Error processing jobs. Please try again.')
@@ -47,9 +52,11 @@ export default function Home() {
           <ResultsDashboard 
             matches={matches} 
             loading={loading}
+            searchInfo={searchInfo}
             onReset={() => {
               setResumeUploaded(false)
               setMatches([])
+              setSearchInfo(null)
             }}
           />
         )}
