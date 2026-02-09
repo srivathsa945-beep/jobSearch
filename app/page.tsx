@@ -28,7 +28,14 @@ export default function Home() {
       const data = await response.json()
       
       if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to search jobs')
+        const errorMsg = data.error || data.details || 'Failed to search jobs'
+        // Check if it's an environment variable issue
+        if (errorMsg.includes('APIFY_API_TOKEN') || errorMsg.includes('environment variable')) {
+          alert(`Configuration Error: ${errorMsg}\n\nPlease set APIFY_API_TOKEN in Vercel environment variables.\n\nSee VERCEL_ENV_SETUP.md for instructions.`)
+        } else {
+          alert(`Error: ${errorMsg}\n\nCheck Vercel deployment logs for more details.`)
+        }
+        throw new Error(errorMsg)
       }
       
       setJobs(data.jobs || [])
@@ -37,11 +44,19 @@ export default function Home() {
         dateRange: data.dateRange
       })
       
+      // If no jobs found, show a helpful message
+      if (data.totalJobs === 0) {
+        alert('No jobs found. This could mean:\n\n1. Apify API token not set in Vercel\n2. Apify usage limit exceeded\n3. No jobs match the search criteria\n\nCheck Vercel deployment logs for details.')
+      }
+      
       // Move to upload step
       setStep('upload')
     } catch (error) {
       console.error('Error searching jobs:', error)
-      alert(error instanceof Error ? error.message : 'Error searching jobs. Please try again.')
+      // Don't show alert again if we already showed one above
+      if (!(error instanceof Error && error.message.includes('Configuration Error'))) {
+        // Error already handled above
+      }
     } finally {
       setLoading(false)
     }
