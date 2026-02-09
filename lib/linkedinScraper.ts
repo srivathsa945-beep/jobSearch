@@ -279,19 +279,21 @@ SOLUTIONS:
       // No retry - only run once as requested
       
       // If no items, try to get more info
-      if (items.length === 0) {
-        console.warn(`⚠️ Apify returned 0 items. Checking run status...`)
-        try {
-          const runInfo = await client.run(run.id).get()
-          console.log(`   Run status: ${runInfo.status}`)
-          console.log(`   Run stats:`, runInfo.stats)
-          if (runInfo.statusMessage) {
-            console.log(`   Status message: ${runInfo.statusMessage}`)
+          if (items.length === 0) {
+            console.warn(`⚠️ Apify returned 0 items. Checking run status...`)
+            try {
+              const runInfo = await client.run(run.id).get()
+              if (runInfo) {
+                console.log(`   Run status: ${runInfo.status}`)
+                console.log(`   Run stats:`, runInfo.stats)
+                if (runInfo.statusMessage) {
+                  console.log(`   Status message: ${runInfo.statusMessage}`)
+                }
+              }
+            } catch (e) {
+              console.log(`   Could not fetch run details`)
+            }
           }
-        } catch (e) {
-          console.log(`   Could not fetch run details`)
-        }
-      }
     } catch (error) {
       console.error(`❌ Error fetching results from Apify dataset:`, error)
       console.error(`   Dataset ID: ${runResult.defaultDatasetId}`)
