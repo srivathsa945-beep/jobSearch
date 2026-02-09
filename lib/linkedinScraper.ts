@@ -251,21 +251,23 @@ SOLUTIONS:
       if (runResult.status === 'FAILED') {
         console.warn(`⚠️ Apify run marked as FAILED, but checking for partial results...`)
         console.warn(`   Check logs at: https://console.apify.com/actors/runs/${run.id}`)
-        // Try to get error details
-        try {
-          const runDetails = await client.run(run.id).get()
-          console.warn(`   Run error:`, runDetails.statusMessage || 'Unknown error')
-          // Even if failed, try to get results - sometimes partial results are available
-          if (runResult.defaultDatasetId) {
-            console.log(`   Attempting to fetch results despite FAILED status...`)
-            // Continue to fetch results below - don't return early
-          } else {
+          // Try to get error details
+          try {
+            const runDetails = await client.run(run.id).get()
+            if (runDetails) {
+              console.warn(`   Run error:`, runDetails.statusMessage || 'Unknown error')
+            }
+            // Even if failed, try to get results - sometimes partial results are available
+            if (runResult.defaultDatasetId) {
+              console.log(`   Attempting to fetch results despite FAILED status...`)
+              // Continue to fetch results below - don't return early
+            } else {
+              return []
+            }
+          } catch (e) {
+            console.error(`   Could not fetch run details`)
             return []
           }
-        } catch (e) {
-          console.error(`   Could not fetch run details`)
-          return []
-        }
       }
     } catch (error) {
       console.error(`❌ Error waiting for Apify run to finish:`, error)
