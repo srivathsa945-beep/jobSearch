@@ -7,7 +7,7 @@ const jobStore = new Map<string, any>()
 
 export async function POST(request: NextRequest) {
   try {
-    const { jobId, jobTitle, company, applyUrl } = await request.json()
+    const { jobId, jobTitle, company, applyUrl, applied } = await request.json()
 
     if (!jobId) {
       return NextResponse.json(
@@ -23,14 +23,26 @@ export async function POST(request: NextRequest) {
     // 2. Store application history in a database
     // 3. Send notifications
     
-    console.log(`Application click tracked: ${jobTitle} at ${company} (${jobId})`)
+    const appliedStatus = applied ? 'APPLIED' : 'CLICKED'
+    console.log(`Application ${appliedStatus}: ${jobTitle} at ${company} (${jobId})`)
+    
+    // Store in memory (in production, use a database)
+    jobStore.set(jobId, {
+      jobId,
+      jobTitle: jobTitle || 'Unknown',
+      company: company || 'Unknown',
+      applyUrl,
+      applied: applied || false,
+      timestamp: new Date().toISOString()
+    })
 
     return NextResponse.json({
       success: true,
-      message: 'Application click tracked',
+      message: `Application ${appliedStatus.toLowerCase()}`,
       jobId,
       jobTitle: jobTitle || 'Unknown',
-      company: company || 'Unknown'
+      company: company || 'Unknown',
+      applied: applied || false
     })
   } catch (error) {
     console.error('Error tracking application:', error)

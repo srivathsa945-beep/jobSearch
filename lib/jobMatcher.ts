@@ -1,36 +1,66 @@
 import { ResumeData, JobPosting, JobMatch } from '@/types'
+import { PROJECT_MANAGEMENT_KEYWORDS, isProjectManagementKeyword, isSecurityKeyword } from './securityKeywords'
+import { isProjectManagerRole } from './pmpFilter'
 
 export function calculateMatchScore(resume: ResumeData, job: JobPosting): JobMatch {
   const resumeText = resume.text.toLowerCase()
   const jobText = (job.description + ' ' + job.requirements.join(' ') + ' ' + job.title).toLowerCase()
   
   // Extract ALL keywords from job posting (comprehensive extraction)
-  const jobKeywords = extractAllKeywords(jobText, job)
-  const resumeKeywords = extractAllKeywords(resumeText, null)
+  let jobKeywords = extractAllKeywords(jobText, job)
+  let resumeKeywords = extractAllKeywords(resumeText, null)
+  
+  // Prioritize project management keywords - add them to the top of the keyword lists
+  const jobPMKeywords = jobKeywords.filter(kw => isProjectManagementKeyword(kw))
+  const resumePMKeywords = resumeKeywords.filter(kw => isProjectManagementKeyword(kw))
+  
+  // Reorder: project management keywords first, then others
+  jobKeywords = [...jobPMKeywords, ...jobKeywords.filter(kw => !isProjectManagementKeyword(kw))]
+  resumeKeywords = [...resumePMKeywords, ...resumeKeywords.filter(kw => !isProjectManagementKeyword(kw))]
   
   // Calculate keyword matches - THIS IS THE PRIMARY SCORING METHOD
-  const { matchedKeywords, missingKeywords, matchDetails } = calculateKeywordMatches(resumeKeywords, jobKeywords)
+  // Project management keywords get higher weight
+  const { matchedKeywords, missingKeywords, matchDetails } = calculateKeywordMatches(resumeKeywords, jobKeywords, jobPMKeywords)
   
-  // Calculate match score based on keywords (80% weight)
+  // Calculate match score based on keywords - more lenient approach
+  // If job has many keywords, we don't need to match all of them
   const keywordMatchRatio = jobKeywords.length > 0 
     ? matchedKeywords.length / jobKeywords.length 
     : 0
   
-  // Role/Title match (10% weight) - still important but secondary to keywords
+  // More lenient scoring: if we match at least some keywords, give partial credit
+  // Also consider absolute number of matches, not just ratio
+  // Give bonus points for having ANY matches at all
+  const absoluteMatchBonus = Math.min(30, matchedKeywords.length * 3) // Up to 30 points for having matches
+  const ratioScore = keywordMatchRatio * 50 // Reduced from 80 to 50 to be more lenient
+  
+  // If we have at least 3 keyword matches, give additional bonus
+  const matchCountBonus = matchedKeywords.length >= 3 ? 10 : 0
+  
+  // Role/Title match (15% weight) - increased importance
   const roleMatchScore = checkRoleMatch(resume, job)
   
-  // Experience match (5% weight)
+  // Experience match (10% weight) - increased importance
   const experienceMatch = checkExperienceMatch(resume, job)
   
   // Education match (5% weight)
   const educationMatch = checkEducationMatch(resume, job)
   
-  // Calculate final score - KEYWORD-BASED
-  let score = (keywordMatchRatio * 80) + (roleMatchScore * 10) + (experienceMatch * 5) + (educationMatch * 5)
+  // Base score for Project Manager jobs (if it's a PM role, give base points)
+  const isPMRole = job.title.toLowerCase().includes('project manager') || 
+                   job.title.toLowerCase().includes('program manager') ||
+                   job.description.toLowerCase().includes('project manager') ||
+                   job.description.toLowerCase().includes('program manager')
+  const baseScore = isPMRole ? 15 : 0
+  
+  // Calculate final score - more lenient and balanced
+  let score = ratioScore + absoluteMatchBonus + matchCountBonus + (roleMatchScore * 15) + (experienceMatch * 10) + (educationMatch * 5) + baseScore
   score = Math.min(100, Math.max(0, Math.round(score)))
   
-  // Generate recommendation
-  const recommendation: 'apply' | 'skip' = score >= 70 ? 'apply' : 'skip'
+  // More lenient recommendation threshold - lower from 70 to 40
+  // This will show more jobs as "apply" recommendations
+  // If it's a PM role and we have some keyword matches, recommend applying
+  const recommendation: 'apply' | 'skip' = (score >= 40) || (isPMRole && matchedKeywords.length >= 2) ? 'apply' : 'skip'
   
   // Generate detailed reasons based on keyword matches
   const reasons: string[] = []
@@ -78,13 +108,16 @@ export function calculateMatchScore(resume: ResumeData, job: JobPosting): JobMat
 // Calculate keyword matches between resume and job
 function calculateKeywordMatches(
   resumeKeywords: string[], 
-  jobKeywords: string[]
+  jobKeywords: string[],
+  pmKeywords: string[] = []
 ): { matchedKeywords: string[], missingKeywords: string[], matchDetails: any } {
   const matchedKeywords: string[] = []
   const missingKeywords: string[] = []
   
   // Check each job keyword against resume keywords
   jobKeywords.forEach(jobKeyword => {
+    const isPM = pmKeywords.includes(jobKeyword) || isProjectManagementKeyword(jobKeyword)
+    
     const found = resumeKeywords.some(resumeKeyword => {
       // Exact match
       if (resumeKeyword === jobKeyword) return true
@@ -97,9 +130,19 @@ function calculateKeywordMatches(
     })
     
     if (found) {
-      matchedKeywords.push(jobKeyword)
+      // Prioritize project management keywords in matched list
+      if (isPM) {
+        matchedKeywords.unshift(jobKeyword) // Add to front
+      } else {
+        matchedKeywords.push(jobKeyword)
+      }
     } else {
-      missingKeywords.push(jobKeyword)
+      // Prioritize project management keywords in missing list too
+      if (isPM) {
+        missingKeywords.unshift(jobKeyword) // Add to front
+      } else {
+        missingKeywords.push(jobKeyword)
+      }
     }
   })
   
@@ -173,6 +216,13 @@ function checkRoleMatch(resume: ResumeData, job: JobPosting): number {
 function extractAllKeywords(text: string, job: JobPosting | null): string[] {
   const found: string[] = []
   const lowerText = text.toLowerCase()
+  
+  // Add project management keywords first (they're prioritized)
+  PROJECT_MANAGEMENT_KEYWORDS.forEach(keyword => {
+    if (lowerText.includes(keyword.toLowerCase())) {
+      found.push(keyword)
+    }
+  })
   
   // Comprehensive tech and skill keywords
   const allKeywords = [

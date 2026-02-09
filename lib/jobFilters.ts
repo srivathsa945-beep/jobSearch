@@ -139,11 +139,12 @@ function isFullTime(description: string, title: string): boolean {
  */
 export function filterJobs(jobs: JobPosting[]): JobPosting[] {
   console.log(`🔍 Filtering ${jobs.length} jobs with criteria:`)
-  console.log('  - Full-time only')
+  console.log('  - Full-time only (contract/temp excluded)')
   console.log('  - No staffing/recruiting companies')
   console.log('  - Salary > $100k per annum (or not specified)')
-  console.log('  - Must have benefits mentioned')
-  console.log('  - End-client companies only (companies like Toyota, PepsiCo, First Citizens Bank, Capital One, etc. - any company that is NOT a staffing agency)')
+  console.log('  - Benefits mentioned (or not explicitly excluded)')
+  console.log('  - End-client companies only (any company that is NOT a staffing agency)')
+  console.log('  Note: Filters are applied leniently to ensure we show jobs')
   
   const filtered = jobs.filter(job => {
     // 1. Full-time check
@@ -170,10 +171,17 @@ export function filterJobs(jobs: JobPosting[]): JobPosting[] {
       console.log(`  ✅ Salary check passed: $${salary}k`)
     }
     
-    // 4. Benefits check
-    if (!hasBenefits(job.description)) {
-      console.log(`  ❌ Excluded: ${job.title} at ${job.company} - No benefits mentioned`)
+    // 4. Benefits check (make this less strict - many jobs don't list benefits in description)
+    // Only exclude if explicitly stated "no benefits"
+    const descriptionLower = job.description.toLowerCase()
+    if (descriptionLower.includes('no benefits') || descriptionLower.includes('benefits not included')) {
+      console.log(`  ❌ Excluded: ${job.title} at ${job.company} - Explicitly states no benefits`)
       return false
+    }
+    // If benefits not mentioned, still include (many jobs list benefits separately)
+    // Only log if benefits ARE mentioned
+    if (hasBenefits(job.description)) {
+      console.log(`  ✅ Benefits mentioned for: ${job.title} at ${job.company}`)
     }
     
     // 5. End-client check (exclude staffing companies, include all others)

@@ -30,5 +30,7 @@ export interface JobMatch {
   reasons: string[]
   matchedSkills: string[]
   missingSkills: string[]
+  applied?: boolean // Track if user has applied
+  appliedDate?: string // When they applied
 }
 
