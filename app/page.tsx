@@ -5,6 +5,9 @@ import ResumeUpload from '@/components/ResumeUpload'
 import ResultsDashboard from '@/components/ResultsDashboard'
 import { JobMatch, JobPosting } from '@/types'
 
+// Force dynamic rendering to prevent static generation issues with event handlers
+export const dynamic = 'force-dynamic'
+
 type Step = 'search' | 'upload' | 'results'
 
 export default function Home() {
