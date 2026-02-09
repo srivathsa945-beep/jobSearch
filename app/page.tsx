@@ -1,8 +1,8 @@
-import dynamic from 'next/dynamic'
+import dynamicImport from 'next/dynamic'
 
 // Dynamically import the client component with SSR disabled
 // This prevents Next.js from trying to pre-render it during build
-const HomeClient = dynamic(() => import('./page-client'), {
+const HomeClient = dynamicImport(() => import('./page-client'), {
   ssr: false, // Disable server-side rendering completely
   loading: () => (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-slate-900 flex items-center justify-center">
