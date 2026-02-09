@@ -213,7 +213,7 @@ export async function searchGoogleJobs(
 
     // Convert Apify results to JobPosting format
     const jobPostings: JobPosting[] = items
-      .map((item: any, index: number) => {
+      .map((item: any, index: number): JobPosting | null => {
         // Extract description (Apify actors may use different field names)
         const description = item.description || 
                           item.jobDescription || 
@@ -276,7 +276,7 @@ export async function searchGoogleJobs(
           source: 'Google Jobs'
         }
       })
-      .filter((job: JobPosting | null): job is JobPosting => job !== null) // Filter out nulls
+      .filter((job): job is JobPosting => job !== null) // Filter out nulls
       .filter((job: JobPosting) => job.title && job.company) // Filter out invalid jobs
 
     return jobPostings
