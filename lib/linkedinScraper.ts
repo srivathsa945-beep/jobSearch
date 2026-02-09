@@ -435,8 +435,8 @@ SOLUTIONS:
       })
       .filter((job: JobPosting | null): job is JobPosting => 
         job !== null && 
-        job.title && 
-        job.company
+        Boolean(job.title) && 
+        Boolean(job.company)
         // Don't filter out search URLs - include them if that's all we have
         // Better to show jobs with search URLs than show nothing
       ) // Filter out invalid jobs and nulls, but keep search URLs if needed
