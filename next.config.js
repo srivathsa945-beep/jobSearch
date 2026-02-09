@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Disable static optimization to prevent build-time rendering issues
-  output: 'standalone',
   // Webpack configuration for Node.js modules
   webpack: (config, { isServer }) => {
     if (isServer) {
