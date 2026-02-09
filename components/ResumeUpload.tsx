@@ -63,15 +63,15 @@ export default function ResumeUpload({ onResumeProcessed }: ResumeUploadProps) {
   }
 
   return (
-    <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-8">
+    <div className="max-w-2xl mx-auto bg-gray-800 rounded-xl shadow-2xl p-8 border border-gray-700">
       <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-300 mb-2">
           Upload Your Resume (PDF or Word Document)
         </label>
-        <div className="mt-2 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-blue-400 transition-colors">
+        <div className="mt-2 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-600 border-dashed rounded-lg hover:border-blue-500 hover:bg-gray-750 transition-all duration-200">
           <div className="space-y-1 text-center">
             <svg
-              className="mx-auto h-12 w-12 text-gray-400"
+              className="mx-auto h-12 w-12 text-gray-500"
               stroke="currentColor"
               fill="none"
               viewBox="0 0 48 48"
@@ -84,10 +84,10 @@ export default function ResumeUpload({ onResumeProcessed }: ResumeUploadProps) {
                 strokeLinejoin="round"
               />
             </svg>
-            <div className="flex text-sm text-gray-600">
+            <div className="flex text-sm text-gray-400">
               <label
                 htmlFor="file-upload"
-                className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
+                className="relative cursor-pointer rounded-md font-medium text-blue-400 hover:text-blue-300 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500 focus-within:ring-offset-gray-800"
               >
                 <span>Upload a file</span>
                 <input
@@ -105,14 +105,14 @@ export default function ResumeUpload({ onResumeProcessed }: ResumeUploadProps) {
           </div>
         </div>
         {file && (
-          <p className="mt-2 text-sm text-gray-600">
-            Selected: {file.name}
+          <p className="mt-2 text-sm text-gray-300">
+            Selected: <span className="font-medium text-blue-400">{file.name}</span>
           </p>
         )}
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+        <div className="mb-4 p-3 bg-red-900/50 border border-red-500 text-red-200 rounded-lg">
           {error}
         </div>
       )}
@@ -120,7 +120,7 @@ export default function ResumeUpload({ onResumeProcessed }: ResumeUploadProps) {
       <button
         onClick={handleUpload}
         disabled={!file || uploading}
-        className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+        className="w-full bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white py-3 px-4 rounded-lg hover:from-blue-500 hover:via-purple-500 hover:to-indigo-500 disabled:from-gray-700 disabled:via-gray-700 disabled:to-gray-700 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:shadow-blue-500/50"
       >
         {uploading ? 'Processing Resume...' : 'Upload & Scan Jobs'}
       </button>

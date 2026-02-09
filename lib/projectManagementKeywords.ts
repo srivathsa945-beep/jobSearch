@@ -80,16 +80,14 @@ export const PROJECT_MANAGEMENT_KEYWORDS = [
   'ldap',
   'powershell',
   'sharepoint',
-  'service now',
   'servicenow',
-  'asana',
+  'slack',
   'trello',
+  'asana',
   'monday.com',
   'smartsheet',
   
   // Data Analysis & Forecasting
-  'data analysis',
-  'data analytics',
   'excel',
   'sql',
   'predictive modeling',
@@ -97,43 +95,12 @@ export const PROJECT_MANAGEMENT_KEYWORDS = [
   'tableau',
   'power bi',
   'business intelligence',
-  'bi',
   'reporting',
-  'dashboard',
+  'dashboards',
+  'data analysis',
   'forecasting',
-  'predictive analytics',
-  'data modeling',
   'statistical analysis',
-  'metrics analysis',
-  
-  // Additional Project Management Terms
-  'scope management',
-  'time management',
-  'cost management',
-  'quality management',
-  'communication management',
-  'procurement management',
-  'integration management',
-  'stakeholder analysis',
-  'requirements gathering',
-  'requirements management',
-  'sprint planning',
-  'sprint retrospective',
-  'daily standup',
-  'backlog management',
-  'product backlog',
-  'sprint backlog',
-  'user stories',
-  'epics',
-  'burndown chart',
-  'velocity',
-  'scrum master',
-  'product owner',
-  'agile coach',
-  'project coordinator',
-  'project analyst',
-  'program coordinator',
-  'portfolio management'
+  'data interpretation'
 ]
 
 /**
@@ -144,7 +111,7 @@ export function getPriorityKeywords(): string[] {
 }
 
 /**
- * Check if a keyword is a project management-related keyword
+ * Check if a keyword is a project management related keyword
  */
 export function isProjectManagementKeyword(keyword: string): boolean {
   const lowerKeyword = keyword.toLowerCase()
@@ -152,10 +119,5 @@ export function isProjectManagementKeyword(keyword: string): boolean {
     lowerKeyword.includes(pmKeyword.toLowerCase()) || 
     pmKeyword.toLowerCase().includes(lowerKeyword)
   )
-}
-
-// Keep the old function name for backward compatibility, but it now checks PM keywords
-export function isSecurityKeyword(keyword: string): boolean {
-  return isProjectManagementKeyword(keyword)
 }
 

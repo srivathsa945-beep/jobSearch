@@ -1,27 +1,14 @@
 import { JobPosting } from '@/types'
-import axios from 'axios'
-import * as cheerio from 'cheerio'
 import { searchLinkedInJobs } from './linkedinScraper'
 import { searchGoogleJobs } from './googleScraper'
 import { filterJobs } from './jobFilters'
-import { filterPMPRequiredProjectManagerJobs } from './pmpFilter'
 
-// Helper function to generate valid LinkedIn search URLs
-function getLinkedInSearchUrl(jobTitle: string): string {
-  const encodedTitle = encodeURIComponent(jobTitle)
-  return `https://www.linkedin.com/jobs/search/?keywords=${encodedTitle}&f_TPR=r604800`
-}
-
-// Comprehensive job database with diverse roles
-// Dates are calculated dynamically based on current date
-// Note: These are fallback mock jobs - real jobs come from Apify LinkedIn scraper
-function getAllJobs(): JobPosting[] {
-  const now = Date.now()
-  // Calculate dates relative to TODAY (dynamic)
-  const daysAgo = (days: number) => new Date(now - days * 24 * 60 * 60 * 1000).toISOString()
-  const hoursAgo = (hours: number) => new Date(now - hours * 60 * 60 * 1000).toISOString()
-
-  return [
+// Enhanced job search - SEARCHES FOR PROJECT MANAGER JOBS
+// This function:
+// 1. First fetches ALL Project Manager jobs
+// 2. Then filters them based on criteria (full-time, no staffing, salary, benefits, end-clients)
+// 3. Returns jobs ready to be scored against the resume
+export async function searchJobs(
     // Project Management Roles
     {
       id: 'pm1',
@@ -283,16 +270,6 @@ function getAllJobs(): JobPosting[] {
       postedDate: daysAgo(7),
       url: getLinkedInSearchUrl('Construction Project Manager'),
       applyUrl: getLinkedInSearchUrl('Construction Project Manager'),
-      source: 'LinkedIn (Mock)'
-    }
-  ]
-}
-
-// Enhanced job search - SEARCHES FOR PROJECT MANAGER JOBS
-// This function:
-// 1. First fetches ALL Project Manager jobs
-// 2. Then filters them based on criteria (full-time, no staffing, salary, benefits, end-clients)
-// 3. Returns jobs ready to be scored against the resume
 export async function searchJobs(
   resumeJobTitle?: string | null, 
   resumeKeywords?: string[],
@@ -584,24 +561,4 @@ export async function searchJobs(
   }
 }
 
-// Real job search function (commented out - requires API keys)
-export async function searchJobsReal(query: string, location: string): Promise<JobPosting[]> {
-  // Example: Indeed API integration
-  // const indeedApiKey = process.env.INDEED_API_KEY
-  // const response = await axios.get('https://api.indeed.com/ads/apisearch', {
-  //   params: {
-  //     publisher: indeedApiKey,
-  //     q: query,
-  //     l: location,
-  //     sort: 'date',
-  //     radius: 25,
-  //     limit: 25,
-  //     format: 'json'
-  //   }
-  // })
-  // return response.data.results.map(...)
-  
-  // For now, return empty array
-  return []
-}
 

@@ -1,6 +1,5 @@
 import { ResumeData, JobPosting, JobMatch } from '@/types'
-import { PROJECT_MANAGEMENT_KEYWORDS, isProjectManagementKeyword, isSecurityKeyword } from './securityKeywords'
-import { isProjectManagerRole } from './pmpFilter'
+import { PROJECT_MANAGEMENT_KEYWORDS, isProjectManagementKeyword } from './projectManagementKeywords'
 
 export function calculateMatchScore(resume: ResumeData, job: JobPosting): JobMatch {
   const resumeText = resume.text.toLowerCase()

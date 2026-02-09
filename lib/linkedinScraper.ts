@@ -142,7 +142,7 @@ export async function searchLinkedInJobs(
 Tried: ${actorId} and alternatives: ${alternativeActors.join(', ')}
 
 SOLUTIONS:
-1. Visit http://localhost:3000/api/list-actors to see available actors
+    1. Visit https://console.apify.com/actors to find available actors
 2. Go to https://console.apify.com/actors and search for "LinkedIn jobs"
 3. Find a LinkedIn scraper actor and update APIFY_LINKEDIN_ACTOR_ID in .env
 4. You may need to subscribe to or purchase access to the actor`

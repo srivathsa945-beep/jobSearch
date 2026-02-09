@@ -30,20 +30,14 @@ APIFY_GOOGLE_ACTOR_ID=johnvc/Google-Jobs-Scraper
   - Default actor ID (can be overridden with APIFY_GOOGLE_ACTOR_ID)
   - Searches Google Jobs for job postings
 
-## Test Your Setup
+## Verify Your Setup
 
-1. **Test Apify Connection:**
-   - Visit: `http://localhost:3000/api/test-apify`
-   - Should return `success: true` and show the actor as found
-
-2. **Debug Environment:**
-   - Visit: `http://localhost:3000/api/debug-search`
-   - Shows all environment variables and connection status
-
-3. **List Available Actors:**
-   - Visit: `http://localhost:3000/api/list-actors`
-   - Shows all actors available to your account
-
-4. **Check Server Logs:**
+1. **Check Server Logs:**
    - When you click "Search for Project Manager Jobs", check your terminal
    - Look for Apify run IDs and any error messages
+   - If you see "Monthly usage hard limit exceeded", upgrade your Apify plan
+
+2. **Check Apify Console:**
+   - Visit: https://console.apify.com/actors
+   - Verify your actors are accessible
+   - Check your usage dashboard: https://console.apify.com/account/usage
