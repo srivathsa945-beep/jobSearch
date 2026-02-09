@@ -76,9 +76,8 @@ export async function searchLinkedInJobs(
     // Reduced maxItems for faster results in Vercel serverless environment
     const searchParams: any = {
       urls: [linkedInSearchUrl],  // Required: array of LinkedIn job search URLs
-      maxItems: 100,  // Reduced for faster scraping in Vercel (was 250)
-      limit: 100,     // Reduced for faster scraping
-      waitForFinish: false  // Don't wait - we'll poll for results
+      maxItems: 50,  // Further reduced for faster scraping in Vercel (was 250, then 100)
+      limit: 50       // Further reduced for faster scraping
     }
 
     // Verify actor exists and get its input schema
@@ -221,19 +220,21 @@ SOLUTIONS:
     }
 
     // Wait for the run to finish (with timeout optimized for Vercel serverless)
-    // Vercel Pro plan has 60s timeout, Hobby has 10s - we'll use 50s to be safe
+    // Vercel Pro plan has 60s timeout, Hobby has 10s - we'll use 45s to be safe
     let runResult: any
     try {
-      console.log(`⏳ Waiting for Apify run to complete (timeout: 50 seconds for Vercel compatibility)...`)
+      console.log(`⏳ Waiting for Apify run to complete (timeout: 45 seconds for Vercel compatibility)...`)
       console.log(`   Run ID: ${run.id}`)
       console.log(`   Monitor progress: https://console.apify.com/actors/runs/${run.id}`)
+      console.log(`   Note: If timeout occurs, check Apify console for results`)
       
-      // Reduced timeout for Vercel serverless functions (50 seconds max)
-      // Vercel Pro: 60s max, Hobby: 10s max - we use 50s to be safe
+      // Reduced timeout for Vercel serverless functions (45 seconds max)
+      // Vercel Pro: 60s max, Hobby: 10s max - we use 45s to be safe
+      // Try to get results even if run is still running (partial results)
       runResult = await Promise.race([
-        client.run(run.id).waitForFinish({ waitSecs: 50 }),
+        client.run(run.id).waitForFinish({ waitSecs: 45 }),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Apify run timeout after 50 seconds (Vercel limit)')), 50000) // 50 second timeout
+          setTimeout(() => reject(new Error('Apify run timeout after 45 seconds (Vercel limit)')), 45000) // 45 second timeout
         )
       ]) as { defaultDatasetId: string, status: string }
 
@@ -265,7 +266,28 @@ SOLUTIONS:
       console.error(`❌ Error waiting for Apify run to finish:`, error)
       console.error(`   Run ID: ${run.id}`)
       console.error(`   Check status at: https://console.apify.com/actors/runs/${run.id}`)
-      return []
+      
+      // If timeout, try to get partial results anyway
+      if (error instanceof Error && error.message.includes('timeout')) {
+        console.log(`⏰ Timeout occurred, attempting to fetch partial results...`)
+        try {
+          const runInfo = await client.run(run.id).get()
+          if (runInfo && runInfo.defaultDatasetId) {
+            console.log(`   Found dataset ID: ${runInfo.defaultDatasetId}`)
+            runResult = { defaultDatasetId: runInfo.defaultDatasetId, status: runInfo.status || 'RUNNING' }
+            console.log(`   Run status: ${runResult.status}`)
+            // Continue to fetch results below
+          } else {
+            console.warn(`   No dataset available yet, run may still be starting`)
+            return []
+          }
+        } catch (e) {
+          console.error(`   Could not fetch partial results:`, e)
+          return []
+        }
+      } else {
+        return []
+      }
     }
 
     // Fetch the results
