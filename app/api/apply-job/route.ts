@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 
 // Ensure this route uses Node.js runtime (not Edge runtime)
 export const runtime = 'nodejs'
+// Mark as dynamic since we process request body
+export const dynamic = 'force-dynamic'
 
 // Store job data in memory (in production, use a database)
 // Note: Puppeteer can be imported dynamically when needed for actual automation

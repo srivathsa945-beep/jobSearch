@@ -3,6 +3,8 @@ import { searchJobs } from '@/lib/jobSearch'
 
 // Ensure this route uses Node.js runtime (not Edge runtime)
 export const runtime = 'nodejs'
+// Mark as dynamic since we use request.url
+export const dynamic = 'force-dynamic'
 
 /**
  * API endpoint to search for Project Manager jobs WITHOUT requiring a resume

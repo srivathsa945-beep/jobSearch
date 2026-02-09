@@ -5,6 +5,8 @@ import { ResumeData, JobPosting } from '@/types'
 
 // Ensure this route uses Node.js runtime (not Edge runtime)
 export const runtime = 'nodejs'
+// Mark as dynamic since we process request body
+export const dynamic = 'force-dynamic'
 
 /**
  * API endpoint to score pre-fetched jobs against an uploaded resume

@@ -3,6 +3,8 @@ import { parseResume, extractSkills, extractExperience, extractEducation, extrac
 
 // Ensure this route uses Node.js runtime (not Edge runtime)
 export const runtime = 'nodejs'
+// Mark as dynamic since we process file uploads
+export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
