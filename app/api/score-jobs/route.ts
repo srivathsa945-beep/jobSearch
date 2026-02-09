@@ -3,6 +3,9 @@ import { calculateMatchScore } from '@/lib/jobMatcher'
 import { extractSkills, extractExperience, extractEducation, extractJobTitle, extractJobKeywords } from '@/lib/resumeParser'
 import { ResumeData, JobPosting } from '@/types'
 
+// Ensure this route uses Node.js runtime (not Edge runtime)
+export const runtime = 'nodejs'
+
 /**
  * API endpoint to score pre-fetched jobs against an uploaded resume
  * This is called after jobs are fetched and resume is uploaded

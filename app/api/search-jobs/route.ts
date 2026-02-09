@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { searchJobs } from '@/lib/jobSearch'
 
+// Ensure this route uses Node.js runtime (not Edge runtime)
+export const runtime = 'nodejs'
+
 /**
  * API endpoint to search for Project Manager jobs WITHOUT requiring a resume
  * This is called first to fetch all available jobs
