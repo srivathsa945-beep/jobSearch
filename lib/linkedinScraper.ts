@@ -40,18 +40,18 @@ export async function searchLinkedInJobs(
       maxResults: 100
     }
 
-    // Add job type if specified
-    if (jobType === 'F') {
-      searchParams.jobType = 'F'
-      searchParams.type = 'F'
-      searchParams.fullTime = true
-    }
+    // Add job type - FULL-TIME ONLY (required filter)
+    searchParams.jobType = 'F'
+    searchParams.type = 'F'
+    searchParams.fullTime = true
+    searchParams.f_JT = 'F' // LinkedIn filter for full-time
     
     // Add date filter for past week
     if (timeRange === 'r604800') {
       searchParams.datePosted = 'r604800'
       searchParams.postedDate = 'r604800'
       searchParams.timeFilter = 'r604800'
+      searchParams.f_TPR = 'r604800' // LinkedIn time posted filter
       // Some actors use days
       searchParams.days = 7
     }
@@ -62,9 +62,8 @@ export async function searchLinkedInJobs(
       searchParams.experienceLevel = experienceLevel
     }
     
-    // Add remote filter
-    searchParams.remote = true
-    searchParams.workType = '2' // Remote
+    // Note: We don't restrict to remote only - allow all locations
+    // The filters will handle company and other criteria
 
     // Verify actor exists and get its input schema
     try {
@@ -126,6 +125,25 @@ export async function searchLinkedInJobs(
           postedDate = parseLinkedInDate(item.postedDate)
         }
 
+        // Ensure we have a valid URL - prioritize LinkedIn URLs
+        let jobUrl = item.url || item.jobUrl || item.link || item.applyUrl || ''
+        let applyUrl = item.applyUrl || item.url || item.jobUrl || item.link || ''
+        
+        // If URL doesn't start with http, it might be a relative path
+        if (jobUrl && !jobUrl.startsWith('http')) {
+          jobUrl = `https://www.linkedin.com${jobUrl.startsWith('/') ? jobUrl : '/' + jobUrl}`
+        }
+        if (applyUrl && !applyUrl.startsWith('http')) {
+          applyUrl = `https://www.linkedin.com${applyUrl.startsWith('/') ? applyUrl : '/' + applyUrl}`
+        }
+        
+        // If no URL found, create a LinkedIn search URL as fallback
+        if (!jobUrl) {
+          const searchQuery = encodeURIComponent(item.title || item.jobTitle || keywords)
+          jobUrl = `https://www.linkedin.com/jobs/search/?keywords=${searchQuery}`
+          applyUrl = jobUrl
+        }
+
         return {
           id: `linkedin-${item.jobId || item.id || Date.now()}-${index}`,
           title: item.title || item.jobTitle || '',
@@ -134,8 +152,8 @@ export async function searchLinkedInJobs(
           description: description,
           requirements,
           postedDate: postedDate,
-          url: item.url || item.jobUrl || item.applyUrl || item.link || '',
-          applyUrl: item.applyUrl || item.url || item.jobUrl || item.link || '',
+          url: jobUrl,
+          applyUrl: applyUrl || jobUrl, // Use job URL as apply URL if no separate apply URL
           source: 'LinkedIn'
         }
       })

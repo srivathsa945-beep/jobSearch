@@ -9,7 +9,11 @@ export default function Home() {
   const [matches, setMatches] = useState<JobMatch[]>([])
   const [loading, setLoading] = useState(false)
   const [resumeUploaded, setResumeUploaded] = useState(false)
-  const [searchInfo, setSearchInfo] = useState<{ role?: string; totalJobs?: number } | null>(null)
+  const [searchInfo, setSearchInfo] = useState<{ 
+    role?: string
+    totalJobs?: number
+    dateRange?: { fromFormatted: string; toFormatted: string }
+  } | null>(null)
 
   const handleResumeProcessed = async (resumeText: string, jobTitle?: string | null, jobKeywords?: string[]) => {
     setLoading(true)
@@ -26,7 +30,8 @@ export default function Home() {
       setMatches(data.matches || [])
       setSearchInfo({
         role: data.extractedRole,
-        totalJobs: data.totalJobs
+        totalJobs: data.totalJobs,
+        dateRange: data.dateRange
       })
     } catch (error) {
       console.error('Error processing jobs:', error)

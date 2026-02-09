@@ -6,42 +6,43 @@ import { useState } from 'react'
 interface ResultsDashboardProps {
   matches: JobMatch[]
   loading: boolean
-  searchInfo?: { role?: string; totalJobs?: number } | null
+  searchInfo?: { 
+    role?: string
+    totalJobs?: number
+    dateRange?: { fromFormatted: string; toFormatted: string }
+  } | null
   onReset: () => void
 }
 
 export default function ResultsDashboard({ matches, loading, searchInfo, onReset }: ResultsDashboardProps) {
-  const [applyingJobs, setApplyingJobs] = useState<Set<string>>(new Set())
 
   const handleApply = async (match: JobMatch) => {
-    setApplyingJobs(prev => new Set(prev).add(match.job.id))
+    // Use applyUrl if available, otherwise use the job URL
+    const applyUrl = match.job.applyUrl || match.job.url
     
+    if (!applyUrl) {
+      alert('No application URL available for this job. Please use the "View Job" link instead.')
+      return
+    }
+    
+    // Open the job application page in a new tab
+    window.open(applyUrl, '_blank', 'noopener,noreferrer')
+    
+    // Optional: Track that user clicked apply (for analytics)
     try {
-      const response = await fetch('/api/apply-job', {
+      await fetch('/api/apply-job', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           jobId: match.job.id,
           jobTitle: match.job.title,
           company: match.job.company,
-          applyUrl: match.job.applyUrl || match.job.url
+          applyUrl: applyUrl
         }),
       })
-      
-      const data = await response.json()
-      if (data.success) {
-        alert(`Successfully applied to ${data.jobTitle} at ${data.company}!`)
-      } else {
-        alert(`Application status: ${data.message}`)
-      }
     } catch (error) {
-      alert('Error applying to job. Please try again.')
-    } finally {
-      setApplyingJobs(prev => {
-        const newSet = new Set(prev)
-        newSet.delete(match.job.id)
-        return newSet
-      })
+      // Silently fail - the main action (opening URL) already succeeded
+      console.log('Failed to track application click:', error)
     }
   }
 
@@ -71,17 +72,30 @@ export default function ResultsDashboard({ matches, loading, searchInfo, onReset
             Job Matches ({matches.length} found)
           </h2>
           {searchInfo && (
-            <div className="mt-2 text-sm text-gray-600">
-              {searchInfo.role && searchInfo.role !== 'Not detected' && (
-                <span className="inline-block mr-4">
-                  <span className="font-semibold">Detected Role:</span> {searchInfo.role}
-                </span>
-              )}
-              {searchInfo.totalJobs !== undefined && (
-                <span>
-                  <span className="font-semibold">Jobs Scanned:</span> {searchInfo.totalJobs}
-                </span>
-              )}
+            <div className="mt-2 text-sm text-gray-600 space-y-1">
+              <div className="flex flex-wrap gap-4">
+                {searchInfo.role && searchInfo.role !== 'Not detected' && (
+                  <span>
+                    <span className="font-semibold">Detected Role:</span> {searchInfo.role}
+                  </span>
+                )}
+                {searchInfo.totalJobs !== undefined && (
+                  <span>
+                    <span className="font-semibold">Jobs Found:</span> {searchInfo.totalJobs}
+                  </span>
+                )}
+                {searchInfo.dateRange && (
+                  <span>
+                    <span className="font-semibold">Date Range:</span> {searchInfo.dateRange.fromFormatted} to {searchInfo.dateRange.toFormatted}
+                  </span>
+                )}
+              </div>
+              <div className="text-xs text-gray-500 italic">
+                Search runs dynamically - showing jobs from the last 7 days (calculated from today)
+              </div>
+              <div className="mt-2 text-xs text-blue-600 font-semibold">
+                Filters Applied: Full-time only • No staffing companies • Salary &gt;$100k • Benefits included • End-client companies only
+              </div>
             </div>
           )}
         </div>
@@ -104,7 +118,6 @@ export default function ResultsDashboard({ matches, loading, searchInfo, onReset
                 key={match.job.id}
                 match={match}
                 onApply={() => handleApply(match)}
-                isApplying={applyingJobs.has(match.job.id)}
                 getScoreColor={getScoreColor}
               />
             ))}
@@ -123,7 +136,6 @@ export default function ResultsDashboard({ matches, loading, searchInfo, onReset
                 key={match.job.id}
                 match={match}
                 onApply={() => handleApply(match)}
-                isApplying={applyingJobs.has(match.job.id)}
                 getScoreColor={getScoreColor}
               />
             ))}
@@ -143,12 +155,10 @@ export default function ResultsDashboard({ matches, loading, searchInfo, onReset
 function JobCard({ 
   match, 
   onApply, 
-  isApplying,
   getScoreColor 
 }: { 
   match: JobMatch
   onApply: () => void
-  isApplying: boolean
   getScoreColor: (score: number) => string
 }) {
   return (
@@ -221,10 +231,10 @@ function JobCard({
         {match.recommendation === 'apply' && (
           <button
             onClick={onApply}
-            disabled={isApplying}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            title="Opens job application page in a new tab"
           >
-            {isApplying ? 'Applying...' : 'Apply Now'}
+            Apply Now
           </button>
         )}
       </div>

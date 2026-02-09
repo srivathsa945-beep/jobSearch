@@ -28,7 +28,8 @@ export async function POST(request: NextRequest) {
       jobKeywords: extractedJobKeywords
     }
 
-    // Search for jobs posted within last 24 hours, filtered by role
+    // Search for jobs posted within last 7 days (dynamically calculated from current date)
+    // This runs fresh every time - no caching, always uses current date
     const jobs = await searchJobs(extractedJobTitle, extractedJobKeywords)
 
     // Calculate matches for each job
@@ -36,6 +37,10 @@ export async function POST(request: NextRequest) {
     
     // Sort by score (highest first)
     matches.sort((a, b) => b.score - a.score)
+
+    // Calculate date range for display
+    const now = new Date()
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
 
     return NextResponse.json({
       success: true,
@@ -45,6 +50,12 @@ export async function POST(request: NextRequest) {
       searchCriteria: {
         jobTitle: extractedJobTitle,
         keywords: extractedJobKeywords
+      },
+      dateRange: {
+        from: sevenDaysAgo.toISOString(),
+        to: now.toISOString(),
+        fromFormatted: sevenDaysAgo.toLocaleDateString(),
+        toFormatted: now.toLocaleDateString()
       }
     })
   } catch (error) {

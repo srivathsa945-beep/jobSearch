@@ -16,82 +16,38 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // In a real application, you would:
-    // 1. Fetch job details from database
-    // 2. Use Puppeteer/Playwright to navigate to application page
-    // 3. Fill out the application form
-    // 4. Submit the application
+    // This endpoint is used for tracking application clicks
+    // The actual application happens when the user clicks "Apply Now" which opens the job URL
+    // In a production environment, you could:
+    // 1. Log the application attempt to analytics
+    // 2. Store application history in a database
+    // 3. Send notifications
     
-    // For demo purposes, we'll simulate the application process
-    const success = await simulateJobApplication(jobId, applyUrl)
+    console.log(`Application click tracked: ${jobTitle} at ${company} (${jobId})`)
 
-    if (success) {
-      return NextResponse.json({
-        success: true,
-        message: 'Application submitted successfully',
-        jobId,
-        jobTitle: jobTitle || 'Software Engineer',
-        company: company || 'Tech Corp'
-      })
-    } else {
-      return NextResponse.json({
-        success: false,
-        message: 'Application could not be submitted automatically. Please apply manually using the "View Job" link.',
-        jobId
-      })
-    }
+    return NextResponse.json({
+      success: true,
+      message: 'Application click tracked',
+      jobId,
+      jobTitle: jobTitle || 'Unknown',
+      company: company || 'Unknown'
+    })
   } catch (error) {
-    console.error('Error applying to job:', error)
-    return NextResponse.json(
-      { error: 'Failed to apply to job' },
-      { status: 500 }
-    )
+    console.error('Error tracking application:', error)
+    // Return success even if tracking fails - the main action (opening URL) already succeeded
+    return NextResponse.json({
+      success: true,
+      message: 'Application URL opened (tracking failed)'
+    })
   }
 }
 
-async function simulateJobApplication(jobId: string, applyUrl?: string): Promise<boolean> {
-  // Simulate application process
-  // In production, this would:
-  // 1. Launch browser with Puppeteer
-  // 2. Navigate to job application URL
-  // 3. Fill in application form fields
-  // 4. Upload resume if needed
-  // 5. Submit form
-  
-  // Example implementation (commented out - requires actual job URLs):
-  /*
-  try {
-    const browser = await puppeteer.launch({ headless: true })
-    const page = await browser.newPage()
-    
-    // Navigate to application page
-    await page.goto(applyUrl, { waitUntil: 'networkidle2' })
-    
-    // Fill out form fields
-    await page.type('#name', userInfo.name)
-    await page.type('#email', userInfo.email)
-    await page.type('#phone', userInfo.phone)
-    
-    // Upload resume if file input exists
-    const fileInput = await page.$('input[type="file"]')
-    if (fileInput) {
-      await fileInput.uploadFile(resumePath)
-    }
-    
-    // Submit form
-    await page.click('button[type="submit"]')
-    await page.waitForNavigation()
-    
-    await browser.close()
-    return true
-  } catch (error) {
-    console.error('Auto-application failed:', error)
-    return false
-  }
-  */
-  
-  // For demo, return true (simulate success)
-  // In production, implement actual automation
-  return true
-}
+// Note: Auto-application is not implemented because:
+// 1. Each job site has different application forms and requirements
+// 2. Many sites require login/authentication
+// 3. Some sites use CAPTCHA or other anti-bot measures
+// 4. Legal/ethical considerations around automated applications
+//
+// Instead, the "Apply Now" button opens the job URL in a new tab,
+// allowing users to complete the application manually on the job site.
 

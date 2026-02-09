@@ -112,6 +112,20 @@ export function extractJobKeywords(resumeText: string): string[] {
   const roleKeywords: string[] = []
   const lowerText = resumeText.toLowerCase()
 
+  // Check for PMP certification first (important for job search)
+  const pmpPatterns = [
+    /\bpmp\b/i,
+    /project management professional/i,
+    /pmp certified/i,
+    /pmp certification/i,
+    /certified project management professional/i
+  ]
+  
+  const hasPMP = pmpPatterns.some(pattern => pattern.test(resumeText))
+  if (hasPMP) {
+    roleKeywords.push('pmp', 'pmp certified', 'project management professional')
+  }
+
   const rolePatterns = {
     'project management': ['project management', 'project manager', 'pmp', 'agile', 'scrum', 'kanban', 'waterfall'],
     'product management': ['product management', 'product manager', 'product owner', 'roadmap', 'backlog'],
