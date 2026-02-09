@@ -14,8 +14,10 @@ const HomeClient = dynamic(() => import('./page-client'), {
   ),
 })
 
-// Force dynamic rendering
+// Force dynamic rendering - prevent static generation
 export const dynamic = 'force-dynamic'
+export const revalidate = 0 // Never cache
+export const fetchCache = 'force-no-store' // Don't cache any fetches
 
 export default function Home() {
   return <HomeClient />
