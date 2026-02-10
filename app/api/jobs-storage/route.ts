@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
         success: true,
         jobs: [],
         totalJobs: 0,
-        dateRange: stored?.dateRange || dateRange,
+        dateRange: dateRange,
         fromStorage: false,
         message: 'No stored jobs found for this date range'
       })
