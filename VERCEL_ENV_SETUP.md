@@ -8,20 +8,22 @@ You need to set the following environment variables in your Vercel project:
 
 ### 1. APIFY_API_TOKEN
 - **Value**: Your Apify API token (starts with `apify_api_`)
-- **Example**: `apify_api_3Q10gQGguXMquhF5LrwTnYcxvWNLy94v6kB3`
+- **Your Token**: `apify_api_74LnWixKE5sIesne0Jormuz9GW19E444A30c`
 - **Where to get it**: 
   1. Go to https://console.apify.com/account/integrations
   2. Copy your API token
 
 ### 2. APIFY_LINKEDIN_ACTOR_ID (Optional)
-- **Value**: The LinkedIn scraper actor ID
+- **Value**: The LinkedIn scraper actor ID or username/actor-name
 - **Default**: `curious_coder/linkedin-jobs-scraper`
-- **Example**: `curious_coder/linkedin-jobs-scraper`
+- **Actor ID**: `hKByXkMQaC5Qt9UMN` (can use this instead)
+- **Example**: `curious_coder/linkedin-jobs-scraper` or `hKByXkMQaC5Qt9UMN`
 
 ### 3. APIFY_GOOGLE_ACTOR_ID (Optional)
-- **Value**: The Google Jobs scraper actor ID
+- **Value**: The Google Jobs scraper actor ID or username/actor-name
 - **Default**: `johnvc/Google-Jobs-Scraper`
-- **Example**: `johnvc/Google-Jobs-Scraper`
+- **Actor ID**: `CkLDY9GAQf6QlP6GP` (can use this instead)
+- **Example**: `johnvc/Google-Jobs-Scraper` or `CkLDY9GAQf6QlP6GP`
 
 ## How to Set Environment Variables in Vercel
 
@@ -81,13 +83,23 @@ If you see:
 
 ## Current Configuration
 
-Based on your local `.env` file, you should use:
+Based on your provided credentials, you should use:
 
 ```
-APIFY_API_TOKEN=apify_api_3Q10gQGguXMquhF5LrwTnYcxvWNLy94v6kB3
+APIFY_API_TOKEN=apify_api_74LnWixKE5sIesne0Jormuz9GW19E444A30c
 APIFY_LINKEDIN_ACTOR_ID=curious_coder/linkedin-jobs-scraper
 APIFY_GOOGLE_ACTOR_ID=johnvc/Google-Jobs-Scraper
 ```
 
 **Important**: Never commit your `.env` file to git. Environment variables should only be set in Vercel's dashboard.
+
+## Actor Details
+
+- **LinkedIn Scraper**: `curious_coder/linkedin-jobs-scraper`
+  - Actor ID: `hKByXkMQaC5Qt9UMN`
+  - Input parameters: `urls`, `scrapeCompany`, `count`, `splitByLocation`, `splitCountry`
+
+- **Google Jobs Scraper**: `johnvc/Google-Jobs-Scraper`
+  - Actor ID: `CkLDY9GAQf6QlP6GP`
+  - Input parameters: `query`, `location`, `country`, `language`, `google_domain`, `num_results`, `max_pagination`, etc.
 
