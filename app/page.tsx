@@ -4,6 +4,12 @@ import { useState, useEffect } from 'react'
 import ResumeUpload from '@/components/ResumeUpload'
 import ResultsDashboard from '@/components/ResultsDashboard'
 import { JobMatch, JobPosting } from '@/types'
+import { 
+  saveJobsToStorage, 
+  loadJobsFromStorage, 
+  getAllStoredJobsMetadata,
+  clearStoredJobs 
+} from '@/lib/jobsStorage'
 
 type Step = 'search' | 'upload' | 'results'
 
@@ -27,26 +33,16 @@ export default function Home() {
 
   // Check for stored jobs on mount and when date range changes
   useEffect(() => {
-    const checkStoredJobs = async () => {
-      try {
-        const response = await fetch(`/api/jobs-storage?dateRange=${dateRange}`)
-        const data = await response.json()
-        
-        if (data.success && data.jobs && data.jobs.length > 0 && data.fromStorage) {
-          setStoredJobsInfo({
-            count: data.jobs.length,
-            searchDate: data.searchDate || new Date().toISOString(),
-            available: true
-          })
-        } else {
-          setStoredJobsInfo({
-            count: 0,
-            searchDate: '',
-            available: false
-          })
-        }
-      } catch (error) {
-        console.error('Error checking stored jobs:', error)
+    const checkStoredJobs = () => {
+      const stored = loadJobsFromStorage(dateRange)
+      
+      if (stored && stored.jobs.length > 0) {
+        setStoredJobsInfo({
+          count: stored.jobs.length,
+          searchDate: stored.metadata?.searchDate || new Date().toISOString(),
+          available: true
+        })
+      } else {
         setStoredJobsInfo({
           count: 0,
           searchDate: '',
@@ -58,29 +54,33 @@ export default function Home() {
     checkStoredJobs()
   }, [dateRange])
 
+  // Load stored jobs on mount if available
+  useEffect(() => {
+    const stored = loadJobsFromStorage(dateRange)
+    if (stored && stored.jobs.length > 0 && stored.metadata) {
+      setJobs(stored.jobs)
+      setJobsFromStorage(true)
+      setSearchInfo({
+        totalJobs: stored.metadata.totalJobs,
+        dateRange: stored.metadata.dateRangeInfo
+      })
+      // If we have stored jobs, move to upload step
+      setStep('upload')
+    }
+  }, []) // Only run on mount
+
   // Load stored jobs function
-  const loadStoredJobs = async () => {
+  const loadStoredJobs = () => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/jobs-storage?dateRange=${dateRange}`)
-      const data = await response.json()
+      const stored = loadJobsFromStorage(dateRange)
       
-      if (data.success && data.jobs && data.jobs.length > 0 && data.fromStorage) {
-        setJobs(data.jobs)
+      if (stored && stored.jobs.length > 0 && stored.metadata) {
+        setJobs(stored.jobs)
         setJobsFromStorage(true)
-        
-        // Set search info if available
-        const days = parseInt(dateRange) || 7
-        const now = new Date()
-        const daysAgo = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
         setSearchInfo({
-          totalJobs: data.totalJobs,
-          dateRange: {
-            from: daysAgo.toISOString(),
-            to: now.toISOString(),
-            fromFormatted: daysAgo.toLocaleDateString(),
-            toFormatted: now.toLocaleDateString()
-          }
+          totalJobs: stored.metadata.totalJobs,
+          dateRange: stored.metadata.dateRangeInfo
         })
         
         // Move to upload step
@@ -159,20 +159,10 @@ export default function Home() {
         dateRange: dateRangeInfo
       })
       
-      // Save jobs to storage after successful search
+      // Save jobs to localStorage after successful search
       if (fetchedJobs.length > 0) {
         try {
-          await fetch('/api/jobs-storage', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              dateRange,
-              jobs: fetchedJobs,
-              totalJobs: data.totalJobs,
-              dateRangeInfo
-            })
-          })
-          console.log(`💾 Saved ${fetchedJobs.length} jobs to storage`)
+          saveJobsToStorage(dateRange, fetchedJobs, data.totalJobs, dateRangeInfo)
           // Update stored jobs info
           setStoredJobsInfo({
             count: fetchedJobs.length,
@@ -332,8 +322,8 @@ export default function Home() {
             {/* Stored Jobs Section */}
             {storedJobsInfo && storedJobsInfo.available && storedJobsInfo.count > 0 && (
               <div className="bg-gradient-to-r from-blue-900/50 to-indigo-900/50 border-l-4 border-blue-500 rounded-lg p-6 mb-6 shadow-lg">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
+                <div className="flex items-center justify-between flex-wrap gap-4">
+                  <div className="flex items-center flex-1">
                     <div className="flex-shrink-0">
                       <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/50">
                         <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -343,23 +333,85 @@ export default function Home() {
                     </div>
                     <div className="ml-4">
                       <p className="text-lg font-semibold text-blue-300">
-                        {storedJobsInfo.count} Stored Jobs Available
+                        💾 {storedJobsInfo.count} Jobs Stored in Browser
                       </p>
                       <p className="text-sm text-blue-200 mt-1">
                         Last searched: {new Date(storedJobsInfo.searchDate).toLocaleString()}
                       </p>
+                      <p className="text-xs text-blue-300/70 mt-1 italic">
+                        Jobs are saved in your browser's localStorage and will persist across page refreshes
+                      </p>
                     </div>
                   </div>
-                  <button
-                    onClick={loadStoredJobs}
-                    disabled={loading}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors disabled:bg-gray-700 disabled:cursor-not-allowed disabled:text-gray-400"
-                  >
-                    {loading ? 'Loading...' : 'Load Stored Jobs'}
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={loadStoredJobs}
+                      disabled={loading}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors disabled:bg-gray-700 disabled:cursor-not-allowed disabled:text-gray-400"
+                    >
+                      {loading ? 'Loading...' : 'Load Stored Jobs'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm('Are you sure you want to clear stored jobs for this date range?')) {
+                          clearStoredJobs(dateRange)
+                          setStoredJobsInfo({
+                            count: 0,
+                            searchDate: '',
+                            available: false
+                          })
+                        }
+                      }}
+                      className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-medium transition-colors"
+                      title="Clear stored jobs"
+                    >
+                      Clear
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
+
+            {/* All Stored Jobs Summary */}
+            {(() => {
+              const allStored = getAllStoredJobsMetadata()
+              if (allStored.length > 0) {
+                return (
+                  <div className="bg-gray-800 rounded-xl shadow-lg p-6 mb-6 border border-gray-700">
+                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                      <svg className="w-5 h-5 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                      </svg>
+                      All Stored Jobs ({allStored.length} date range{allStored.length > 1 ? 's' : ''})
+                    </h3>
+                    <div className="space-y-2">
+                      {allStored.map((stored) => (
+                        <div key={stored.dateRange} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                          <div>
+                            <p className="text-white font-medium">
+                              {stored.count} jobs • {stored.dateRange} day{stored.dateRange !== '1' ? 's' : ''} range
+                            </p>
+                            <p className="text-gray-400 text-sm">
+                              Searched: {new Date(stored.searchDate).toLocaleString()}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setDateRange(stored.dateRange)
+                              setTimeout(() => loadStoredJobs(), 100)
+                            }}
+                            className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-sm transition-colors"
+                          >
+                            Load
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              }
+              return null
+            })()}
 
             <div className="bg-gray-800 rounded-xl shadow-2xl p-8 border border-gray-700">
               <div className="text-center mb-6">
