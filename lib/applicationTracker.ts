@@ -106,3 +106,4 @@ export function getApplicationStats(): { total: number; thisWeek: number; thisMo
   }
 }
 
+

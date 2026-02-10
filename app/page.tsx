@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import ResumeUpload from '@/components/ResumeUpload'
 import ResultsDashboard from '@/components/ResultsDashboard'
 import { JobMatch, JobPosting } from '@/types'
@@ -13,15 +13,58 @@ export default function Home() {
   const [jobs, setJobs] = useState<JobPosting[]>([])
   const [loading, setLoading] = useState(false)
   const [dateRange, setDateRange] = useState<string>('7') // Default: 7 days
+  const [jobsFromStorage, setJobsFromStorage] = useState(false)
   const [searchInfo, setSearchInfo] = useState<{ 
     role?: string
     totalJobs?: number
     dateRange?: { from: string; to: string; fromFormatted: string; toFormatted: string }
   } | null>(null)
 
+  // Load stored jobs on mount
+  useEffect(() => {
+    const loadStoredJobs = async () => {
+      try {
+        const response = await fetch(`/api/jobs-storage?dateRange=${dateRange}`)
+        const data = await response.json()
+        
+        if (data.success && data.jobs && data.jobs.length > 0 && data.fromStorage) {
+          setJobs(data.jobs)
+          setJobsFromStorage(true)
+          
+          // Set search info if available
+          if (data.dateRange) {
+            const days = parseInt(dateRange) || 7
+            const now = new Date()
+            const daysAgo = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
+            setSearchInfo({
+              totalJobs: data.totalJobs,
+              dateRange: {
+                from: daysAgo.toISOString(),
+                to: now.toISOString(),
+                fromFormatted: daysAgo.toLocaleDateString(),
+                toFormatted: now.toLocaleDateString()
+              }
+            })
+          }
+          
+          // If we have stored jobs, move to upload step
+          if (data.jobs.length > 0) {
+            setStep('upload')
+          }
+        }
+      } catch (error) {
+        console.error('Error loading stored jobs:', error)
+        // Silently fail - user can still search for new jobs
+      }
+    }
+    
+    loadStoredJobs()
+  }, [dateRange])
+
   // Step 1: Search for jobs first
   const handleSearchJobs = async () => {
     setLoading(true)
+    setJobsFromStorage(false) // Reset storage flag when doing new search
     
     try {
       const response = await fetch(`/api/search-jobs?dateRange=${dateRange}`)
@@ -62,20 +105,44 @@ export default function Home() {
         throw new Error(errorMsg)
       }
       
-      setJobs(data.jobs || [])
+      const fetchedJobs = data.jobs || []
+      setJobs(fetchedJobs)
+      
       // Calculate date range based on current selection (not just from API response)
       const days = parseInt(dateRange) || 7
       const now = new Date()
       const daysAgo = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
+      const dateRangeInfo = {
+        from: daysAgo.toISOString(),
+        to: now.toISOString(),
+        fromFormatted: daysAgo.toLocaleDateString(),
+        toFormatted: now.toLocaleDateString()
+      }
+      
       setSearchInfo({
         totalJobs: data.totalJobs,
-        dateRange: {
-          from: daysAgo.toISOString(),
-          to: now.toISOString(),
-          fromFormatted: daysAgo.toLocaleDateString(),
-          toFormatted: now.toLocaleDateString()
-        }
+        dateRange: dateRangeInfo
       })
+      
+      // Save jobs to storage after successful search
+      if (fetchedJobs.length > 0) {
+        try {
+          await fetch('/api/jobs-storage', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              dateRange,
+              jobs: fetchedJobs,
+              totalJobs: data.totalJobs,
+              dateRangeInfo
+            })
+          })
+          console.log(`💾 Saved ${fetchedJobs.length} jobs to storage`)
+        } catch (storageError) {
+          console.error('Error saving jobs to storage:', storageError)
+          // Don't block the user flow if storage fails
+        }
+      }
       
       // If no jobs found, show a helpful message
       if (data.totalJobs === 0) {
@@ -155,6 +222,7 @@ export default function Home() {
     setMatches([])
     setJobs([])
     setSearchInfo(null)
+    setJobsFromStorage(false)
   }
 
   return (
@@ -274,13 +342,20 @@ export default function Home() {
                     </svg>
                   </div>
                 </div>
-                <div className="ml-4">
+                <div className="ml-4 flex-1">
                   <p className="text-lg font-semibold text-emerald-300">
-                    Found {jobs.length} Project Manager jobs!
+                    {jobsFromStorage ? 'Loaded' : 'Found'} {jobs.length} Project Manager jobs!
                   </p>
                   <p className="text-sm text-emerald-200 mt-1">
-                    Upload your resume to see personalized match scores
+                    {jobsFromStorage 
+                      ? 'These jobs were loaded from your previous search. Upload your resume to see personalized match scores.'
+                      : 'Upload your resume to see personalized match scores'}
                   </p>
+                  {jobsFromStorage && (
+                    <p className="text-xs text-emerald-300/70 mt-1 italic">
+                      💡 Tip: Click "Back to Search" to fetch fresh jobs
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
