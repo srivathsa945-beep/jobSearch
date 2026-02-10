@@ -16,7 +16,7 @@ export default function Home() {
   const [searchInfo, setSearchInfo] = useState<{ 
     role?: string
     totalJobs?: number
-    dateRange?: { fromFormatted: string; toFormatted: string }
+    dateRange?: { from: string; to: string; fromFormatted: string; toFormatted: string }
   } | null>(null)
 
   // Step 1: Search for jobs first

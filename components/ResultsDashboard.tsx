@@ -10,7 +10,7 @@ interface ResultsDashboardProps {
   searchInfo?: { 
     role?: string
     totalJobs?: number
-    dateRange?: { fromFormatted: string; toFormatted: string }
+    dateRange?: { from: string; to: string; fromFormatted: string; toFormatted: string }
   } | null
   onReset: () => void
 }
