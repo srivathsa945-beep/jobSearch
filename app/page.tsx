@@ -29,12 +29,36 @@ export default function Home() {
       
       if (!response.ok || !data.success) {
         const errorMsg = data.error || data.details || 'Failed to search jobs'
-        // Check if it's an environment variable issue
-        if (errorMsg.includes('APIFY_API_TOKEN') || errorMsg.includes('environment variable')) {
-          alert(`Configuration Error: ${errorMsg}\n\nPlease set APIFY_API_TOKEN in Vercel environment variables.\n\nSee VERCEL_ENV_SETUP.md for instructions.`)
-        } else {
-          alert(`Error: ${errorMsg}\n\nCheck Vercel deployment logs for more details.`)
+        const debugInfo = data.debugInfo || {}
+        
+        // Build detailed error message
+        let fullErrorMsg = `Error: ${errorMsg}\n\n`
+        
+        if (data.debugInfo) {
+          fullErrorMsg += `Debug Information:\n`
+          fullErrorMsg += `- API Token Present: ${debugInfo.hasToken ? 'Yes' : 'No'}\n`
+          fullErrorMsg += `- Token Length: ${debugInfo.tokenLength} characters\n`
+          fullErrorMsg += `- Token Prefix: ${debugInfo.tokenPrefix}\n`
+          fullErrorMsg += `- Environment: ${debugInfo.nodeEnv || 'N/A'}\n\n`
         }
+        
+        // Check if it's an environment variable issue
+        if (errorMsg.includes('APIFY_API_TOKEN') || errorMsg.includes('environment variable') || errorMsg.includes('not set')) {
+          fullErrorMsg += `SOLUTION:\n`
+          fullErrorMsg += `1. Go to Vercel Dashboard → Your Project → Settings → Environment Variables\n`
+          fullErrorMsg += `2. Add: APIFY_API_TOKEN = apify_api_74LnWixKE5sIesne0Jormuz9GW19E444A30c\n`
+          fullErrorMsg += `3. Select all environments (Production, Preview, Development)\n`
+          fullErrorMsg += `4. Click Save\n`
+          fullErrorMsg += `5. REDEPLOY your application (Deployments → ⋯ → Redeploy)\n\n`
+          fullErrorMsg += `See VERCEL_ENV_SETUP.md for detailed instructions.`
+        } else if (errorMsg.includes('usage') || errorMsg.includes('limit')) {
+          fullErrorMsg += `Your Apify account may have reached its usage limit.\n`
+          fullErrorMsg += `Check: https://console.apify.com/account/usage`
+        } else {
+          fullErrorMsg += `Check Vercel deployment logs for more details.`
+        }
+        
+        alert(fullErrorMsg)
         throw new Error(errorMsg)
       }
       
