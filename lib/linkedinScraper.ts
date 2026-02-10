@@ -87,12 +87,13 @@ export async function searchLinkedInJobs(
     // Build search parameters for curious_coder/linkedin-jobs-scraper
     // Based on Python example: urls, scrapeCompany, count, splitByLocation, splitCountry
     // NOTE: The actor requires count >= 100, so we use 100 minimum
+    // NOTE: splitCountry must be a string (not null)
     const searchParams: any = {
       urls: [linkedInSearchUrl],  // Required: array of LinkedIn job search URLs
       scrapeCompany: true,       // Scrape company information
       count: 100,                 // Minimum required: 100 (actor validation requires >= 100)
       splitByLocation: false,     // Don't split results by location
-      splitCountry: null          // No country splitting
+      splitCountry: "None"        // Must be a string (actor validation requires string, not null)
     }
 
     // Verify actor exists and get its input schema

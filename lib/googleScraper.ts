@@ -326,21 +326,35 @@ export async function searchGoogleJobs(
           return null
         }
 
-        return {
-          id: `google-${item.jobId || item.id || item.jobUrl || Date.now()}-${index}`,
-          title: item.title || item.jobTitle || '',
-          company: item.company || item.companyName || item.employer || '',
-          location: item.location || item.jobLocation || item.locationName || '',
-          description: description,
-          requirements,
-          postedDate: postedDate,
-          url: jobUrl,
-          applyUrl: applyUrl || jobUrl,
-          source: 'Google Jobs'
-        }
-      })
-      .filter((job): job is JobPosting => job !== null) // Filter out nulls
-      .filter((job: JobPosting) => job.title && job.company) // Filter out invalid jobs
+            // Extract company name - Google Jobs uses 'company_name'
+            const companyName = item.company_name || item.company || item.companyName || item.employer || ''
+            
+            // Only create job if we have title and URL (company is optional)
+            if (!item.title && !item.jobTitle) {
+              console.warn(`Skipping job - no title found. Item keys:`, Object.keys(item))
+              return null
+            }
+            
+            if (!jobUrl) {
+              console.warn(`Skipping job "${item.title || item.jobTitle}" - no valid job URL found. Item keys:`, Object.keys(item))
+              return null
+            }
+
+            return {
+              id: `google-${item.job_id || item.jobId || item.id || Date.now()}-${index}`,
+              title: item.title || item.jobTitle || '',
+              company: companyName,
+              location: item.location || item.jobLocation || item.locationName || '',
+              description: description,
+              requirements,
+              postedDate: postedDate,
+              url: jobUrl,
+              applyUrl: applyUrl || jobUrl,
+              source: 'Google Jobs'
+            }
+          })
+          .filter((job): job is JobPosting => job !== null) // Filter out nulls
+          .filter((job: JobPosting) => job.title && job.url) // Filter out invalid jobs (require title and URL, company optional)
 
     return jobPostings
 
