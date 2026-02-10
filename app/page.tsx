@@ -14,52 +14,87 @@ export default function Home() {
   const [loading, setLoading] = useState(false)
   const [dateRange, setDateRange] = useState<string>('7') // Default: 7 days
   const [jobsFromStorage, setJobsFromStorage] = useState(false)
+  const [storedJobsInfo, setStoredJobsInfo] = useState<{
+    count: number
+    searchDate: string
+    available: boolean
+  } | null>(null)
   const [searchInfo, setSearchInfo] = useState<{ 
     role?: string
     totalJobs?: number
     dateRange?: { from: string; to: string; fromFormatted: string; toFormatted: string }
   } | null>(null)
 
-  // Load stored jobs on mount
+  // Check for stored jobs on mount and when date range changes
   useEffect(() => {
-    const loadStoredJobs = async () => {
+    const checkStoredJobs = async () => {
       try {
         const response = await fetch(`/api/jobs-storage?dateRange=${dateRange}`)
         const data = await response.json()
         
         if (data.success && data.jobs && data.jobs.length > 0 && data.fromStorage) {
-          setJobs(data.jobs)
-          setJobsFromStorage(true)
-          
-          // Set search info if available
-          if (data.dateRange) {
-            const days = parseInt(dateRange) || 7
-            const now = new Date()
-            const daysAgo = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
-            setSearchInfo({
-              totalJobs: data.totalJobs,
-              dateRange: {
-                from: daysAgo.toISOString(),
-                to: now.toISOString(),
-                fromFormatted: daysAgo.toLocaleDateString(),
-                toFormatted: now.toLocaleDateString()
-              }
-            })
-          }
-          
-          // If we have stored jobs, move to upload step
-          if (data.jobs.length > 0) {
-            setStep('upload')
-          }
+          setStoredJobsInfo({
+            count: data.jobs.length,
+            searchDate: data.searchDate || new Date().toISOString(),
+            available: true
+          })
+        } else {
+          setStoredJobsInfo({
+            count: 0,
+            searchDate: '',
+            available: false
+          })
         }
       } catch (error) {
-        console.error('Error loading stored jobs:', error)
-        // Silently fail - user can still search for new jobs
+        console.error('Error checking stored jobs:', error)
+        setStoredJobsInfo({
+          count: 0,
+          searchDate: '',
+          available: false
+        })
       }
     }
     
-    loadStoredJobs()
+    checkStoredJobs()
   }, [dateRange])
+
+  // Load stored jobs function
+  const loadStoredJobs = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/jobs-storage?dateRange=${dateRange}`)
+      const data = await response.json()
+      
+      if (data.success && data.jobs && data.jobs.length > 0 && data.fromStorage) {
+        setJobs(data.jobs)
+        setJobsFromStorage(true)
+        
+        // Set search info if available
+        const days = parseInt(dateRange) || 7
+        const now = new Date()
+        const daysAgo = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
+        setSearchInfo({
+          totalJobs: data.totalJobs,
+          dateRange: {
+            from: daysAgo.toISOString(),
+            to: now.toISOString(),
+            fromFormatted: daysAgo.toLocaleDateString(),
+            toFormatted: now.toLocaleDateString()
+          }
+        })
+        
+        // Move to upload step
+        setStep('upload')
+      } else {
+        alert('No stored jobs found for this date range. Please search for new jobs.')
+      }
+    } catch (error) {
+      console.error('Error loading stored jobs:', error)
+      alert('Failed to load stored jobs. Please try searching for new jobs.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Step 1: Search for jobs first
   const handleSearchJobs = async () => {
@@ -138,6 +173,12 @@ export default function Home() {
             })
           })
           console.log(`💾 Saved ${fetchedJobs.length} jobs to storage`)
+          // Update stored jobs info
+          setStoredJobsInfo({
+            count: fetchedJobs.length,
+            searchDate: new Date().toISOString(),
+            available: true
+          })
         } catch (storageError) {
           console.error('Error saving jobs to storage:', storageError)
           // Don't block the user flow if storage fails
@@ -223,6 +264,29 @@ export default function Home() {
     setJobs([])
     setSearchInfo(null)
     setJobsFromStorage(false)
+    // Re-check for stored jobs after reset
+    const checkStoredJobs = async () => {
+      try {
+        const response = await fetch(`/api/jobs-storage?dateRange=${dateRange}`)
+        const data = await response.json()
+        if (data.success && data.jobs && data.jobs.length > 0 && data.fromStorage) {
+          setStoredJobsInfo({
+            count: data.jobs.length,
+            searchDate: data.searchDate || new Date().toISOString(),
+            available: true
+          })
+        } else {
+          setStoredJobsInfo({
+            count: 0,
+            searchDate: '',
+            available: false
+          })
+        }
+      } catch (error) {
+        console.error('Error checking stored jobs:', error)
+      }
+    }
+    checkStoredJobs()
   }
 
   return (
@@ -264,16 +328,49 @@ export default function Home() {
         </div>
         
         {step === 'search' && (
-          <div className="max-w-2xl mx-auto bg-gray-800 rounded-xl shadow-2xl p-8 border border-gray-700">
-            <div className="text-center mb-6">
-              <h2 className="text-3xl font-bold mb-2 text-white">
-                Search for Project Manager Jobs
-              </h2>
-              <div className="w-20 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 mx-auto rounded-full"></div>
-            </div>
+          <div className="max-w-2xl mx-auto">
+            {/* Stored Jobs Section */}
+            {storedJobsInfo && storedJobsInfo.available && storedJobsInfo.count > 0 && (
+              <div className="bg-gradient-to-r from-blue-900/50 to-indigo-900/50 border-l-4 border-blue-500 rounded-lg p-6 mb-6 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/50">
+                        <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-lg font-semibold text-blue-300">
+                        {storedJobsInfo.count} Stored Jobs Available
+                      </p>
+                      <p className="text-sm text-blue-200 mt-1">
+                        Last searched: {new Date(storedJobsInfo.searchDate).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={loadStoredJobs}
+                    disabled={loading}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors disabled:bg-gray-700 disabled:cursor-not-allowed disabled:text-gray-400"
+                  >
+                    {loading ? 'Loading...' : 'Load Stored Jobs'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="bg-gray-800 rounded-xl shadow-2xl p-8 border border-gray-700">
+              <div className="text-center mb-6">
+                <h2 className="text-3xl font-bold mb-2 text-white">
+                  Search for Project Manager Jobs
+                </h2>
+                <div className="w-20 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 mx-auto rounded-full"></div>
+              </div>
             
-            {/* Date Range Selector */}
-            <div className="mb-6">
+              {/* Date Range Selector */}
+              <div className="mb-6">
               <label htmlFor="dateRange" className="block text-sm font-medium text-gray-300 mb-3">
                 Select Date Range
               </label>
@@ -300,34 +397,35 @@ export default function Home() {
               </div>
             </div>
 
-            <p className="text-center text-gray-400 mb-6 text-sm">
-              {dateRange === '1' && "We'll search LinkedIn and Google Jobs for all Project Manager jobs posted in the last 24 hours."}
-              {dateRange === '7' && "We'll search LinkedIn and Google Jobs for all Project Manager jobs posted in the last 7 days."}
-              {dateRange === '14' && "We'll search LinkedIn and Google Jobs for all Project Manager jobs posted in the last 14 days."}
-              {dateRange === '30' && "We'll search LinkedIn and Google Jobs for all Project Manager jobs posted in the last 30 days."}
-            </p>
-            <button
-              onClick={handleSearchJobs}
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white py-4 px-6 rounded-lg hover:from-blue-500 hover:via-purple-500 hover:to-indigo-500 disabled:from-gray-700 disabled:via-gray-700 disabled:to-gray-700 disabled:cursor-not-allowed transition-all duration-200 font-semibold text-lg shadow-lg hover:shadow-xl hover:shadow-blue-500/50 transform hover:-translate-y-0.5 disabled:transform-none"
-            >
-              {loading ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Searching for jobs...
-                </span>
-              ) : (
-                <span className="flex items-center justify-center">
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                  Search for Project Manager Jobs
-                </span>
-              )}
-            </button>
+              <p className="text-center text-gray-400 mb-6 text-sm">
+                {dateRange === '1' && "We'll search LinkedIn and Google Jobs for all Project Manager jobs posted in the last 24 hours."}
+                {dateRange === '7' && "We'll search LinkedIn and Google Jobs for all Project Manager jobs posted in the last 7 days."}
+                {dateRange === '14' && "We'll search LinkedIn and Google Jobs for all Project Manager jobs posted in the last 14 days."}
+                {dateRange === '30' && "We'll search LinkedIn and Google Jobs for all Project Manager jobs posted in the last 30 days."}
+              </p>
+              <button
+                onClick={handleSearchJobs}
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white py-4 px-6 rounded-lg hover:from-blue-500 hover:via-purple-500 hover:to-indigo-500 disabled:from-gray-700 disabled:via-gray-700 disabled:to-gray-700 disabled:cursor-not-allowed transition-all duration-200 font-semibold text-lg shadow-lg hover:shadow-xl hover:shadow-blue-500/50 transform hover:-translate-y-0.5 disabled:transform-none"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Searching for jobs...
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    Search for New Jobs
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
         )}
 
