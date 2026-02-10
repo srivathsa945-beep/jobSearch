@@ -297,19 +297,25 @@ export async function searchGoogleJobs(
           postedDate = parseDate(item.postedDate)
         }
 
-        // Extract URLs - Google Jobs typically provides direct job URLs
-        let jobUrl = item.url || 
-                     item.jobUrl || 
-                     item.link || 
-                     item.jobLink ||
-                     item.externalUrl ||
-                     ''
+        // Google Jobs scraper returns: share_link, apply_options, via
+        // share_link is the main job URL
+        // apply_options is an array of objects with {link: string, ...}
+        let jobUrl = item.share_link || item.url || item.jobUrl || item.link || item.jobLink || item.externalUrl || ''
+        let applyUrl = ''
         
-        let applyUrl = item.applyUrl || 
-                       item.applicationUrl ||
-                       item.applyLink ||
-                       item.externalApplyUrl ||
-                       jobUrl // Use job URL as fallback
+        // Extract apply URL from apply_options array
+        if (item.apply_options && Array.isArray(item.apply_options) && item.apply_options.length > 0) {
+          // apply_options is an array of objects like [{link: "https://...", ...}, ...]
+          const firstApplyOption = item.apply_options[0]
+          if (firstApplyOption && firstApplyOption.link) {
+            applyUrl = firstApplyOption.link
+          }
+        }
+        
+        // Fallback: try other fields
+        if (!applyUrl) {
+          applyUrl = item.applyUrl || item.applicationUrl || item.applyLink || item.externalApplyUrl || ''
+        }
         
         // If URL doesn't start with http, construct it
         if (jobUrl && !jobUrl.startsWith('http')) {
@@ -320,25 +326,39 @@ export async function searchGoogleJobs(
           applyUrl = `https://${applyUrl}`
         }
         
-        // If we still don't have a valid job URL, skip this job
+        // If we still don't have a valid job URL, try to construct one
+        if (!jobUrl) {
+          // Try using share_link if it exists
+          if (item.share_link) {
+            jobUrl = item.share_link
+            console.log(`✅ Using share_link for: ${item.title || item.jobTitle}`)
+          } else {
+            // Last resort: construct Google search URL
+            const searchQuery = encodeURIComponent(item.title || item.jobTitle || keywords)
+            const companyQuery = item.company_name || item.company || ''
+            jobUrl = `https://www.google.com/search?q=${searchQuery}${companyQuery ? '+' + encodeURIComponent(companyQuery) : ''}+jobs`
+            console.log(`⚠️ Using Google search URL as fallback for: ${item.title || item.jobTitle}`)
+          }
+        }
+        
+        // If no apply URL, use job URL
+        if (!applyUrl) {
+          applyUrl = jobUrl
+        }
+        
+        // Extract company name - Google Jobs uses 'company_name'
+        const companyName = item.company_name || item.company || item.companyName || item.employer || ''
+        
+        // Only create job if we have title and URL (company is optional)
+        if (!item.title && !item.jobTitle) {
+          console.warn(`Skipping job - no title found. Item keys:`, Object.keys(item))
+          return null
+        }
+        
         if (!jobUrl) {
           console.warn(`Skipping job "${item.title || item.jobTitle}" - no valid job URL found. Item keys:`, Object.keys(item))
           return null
         }
-
-            // Extract company name - Google Jobs uses 'company_name'
-            const companyName = item.company_name || item.company || item.companyName || item.employer || ''
-            
-            // Only create job if we have title and URL (company is optional)
-            if (!item.title && !item.jobTitle) {
-              console.warn(`Skipping job - no title found. Item keys:`, Object.keys(item))
-              return null
-            }
-            
-            if (!jobUrl) {
-              console.warn(`Skipping job "${item.title || item.jobTitle}" - no valid job URL found. Item keys:`, Object.keys(item))
-              return null
-            }
 
             return {
               id: `google-${item.job_id || item.jobId || item.id || Date.now()}-${index}`,
