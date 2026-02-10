@@ -44,15 +44,47 @@ export async function GET(request: NextRequest) {
     // Check if it's an environment variable issue
     const isEnvError = !process.env.APIFY_API_TOKEN || 
                       errorMessage.includes('APIFY_API_TOKEN') ||
-                      errorMessage.includes('environment variable')
+                      errorMessage.includes('environment variable') ||
+                      errorMessage.includes('not set')
+    
+    // Check if it's a usage limit error
+    const isLimitError = errorMessage.includes('usage') || 
+                        errorMessage.includes('limit') ||
+                        errorMessage.includes('403') ||
+                        errorMessage.includes('Monthly')
+    
+    let userFriendlyError = 'Failed to search jobs'
+    let userFriendlyDetails = errorMessage
+    
+    if (isEnvError) {
+      userFriendlyError = 'Apify API Token Not Configured'
+      userFriendlyDetails = `The APIFY_API_TOKEN environment variable is not set in Vercel.\n\n` +
+        `To fix this:\n` +
+        `1. Go to Vercel Dashboard → Your Project → Settings → Environment Variables\n` +
+        `2. Add: APIFY_API_TOKEN = apify_api_74LnWixKE5sIesne0Jormuz9GW19E444A30c\n` +
+        `3. Select all environments (Production, Preview, Development)\n` +
+        `4. Click Save\n` +
+        `5. REDEPLOY your application (Deployments → ⋯ → Redeploy)`
+    } else if (isLimitError) {
+      userFriendlyError = 'Apify Usage Limit Reached'
+      userFriendlyDetails = `Your Apify account has reached its monthly usage limit.\n\n` +
+        `Solutions:\n` +
+        `1. Upgrade your Apify plan at https://console.apify.com/account/billing\n` +
+        `2. Wait for the monthly limit to reset\n` +
+        `3. Check usage at https://console.apify.com/account/usage`
+    }
     
     return NextResponse.json(
       { 
         success: false,
-        error: isEnvError 
-          ? 'Apify API token not configured. Please set APIFY_API_TOKEN in Vercel environment variables.'
-          : 'Failed to search jobs',
-        details: errorMessage,
+        error: userFriendlyError,
+        details: userFriendlyDetails,
+        debugInfo: {
+          hasToken: !!process.env.APIFY_API_TOKEN,
+          tokenLength: process.env.APIFY_API_TOKEN?.length || 0,
+          tokenPrefix: process.env.APIFY_API_TOKEN?.substring(0, 15) || 'N/A',
+          nodeEnv: process.env.NODE_ENV
+        },
         jobs: [],
         totalJobs: 0,
         dateRange: {

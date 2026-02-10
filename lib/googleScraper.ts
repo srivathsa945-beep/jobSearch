@@ -59,9 +59,25 @@ export async function searchGoogleJobs(
     // Check for Apify API token
     const apifyToken = process.env.APIFY_API_TOKEN
     console.log('🔑 Checking Apify API token for Google scraper...')
+    console.log(`   Environment check: NODE_ENV=${process.env.NODE_ENV}`)
+    
     if (!apifyToken) {
       console.error('❌ CRITICAL: APIFY_API_TOKEN not found in environment variables!')
-      return []
+      console.error('   This means the environment variable is not set in Vercel')
+      console.error('   SOLUTION:')
+      console.error('   1. Go to Vercel Dashboard → Your Project → Settings → Environment Variables')
+      console.error('   2. Add APIFY_API_TOKEN with value: apify_api_74LnWixKE5sIesne0Jormuz9GW19E444A30c')
+      console.error('   3. Select all environments (Production, Preview, Development)')
+      console.error('   4. Click Save and REDEPLOY your application')
+      throw new Error('APIFY_API_TOKEN environment variable is not set. Please set it in Vercel environment variables.')
+    }
+    
+    // Check token format
+    if (!apifyToken.startsWith('apify_api_')) {
+      console.error('❌ Apify token format is incorrect (should start with "apify_api_")')
+      throw new Error('APIFY_API_TOKEN format is incorrect. Token should start with "apify_api_"')
+    } else {
+      console.log('✅ Apify API token found and format looks correct')
     }
 
     console.log('🔧 Initializing Apify client for Google Jobs...')
