@@ -31,7 +31,8 @@ export async function searchLinkedInJobs(
     console.log('✅ Apify client initialized')
     
     // Use Apify's LinkedIn Jobs Scraper actor
-    // Default: curious_coder/linkedin-jobs-scraper (verified working actor)
+    // Actor ID: hKByXkMQaC5Qt9UMN (curious_coder/linkedin-jobs-scraper)
+    // Can also use username/actor-name format: curious_coder/linkedin-jobs-scraper
     const actorId = process.env.APIFY_LINKEDIN_ACTOR_ID || 'curious_coder/linkedin-jobs-scraper'
     
     console.log('Starting Apify LinkedIn job search...')
@@ -72,12 +73,13 @@ export async function searchLinkedInJobs(
     console.log(`🔗 Constructed LinkedIn search URL: ${linkedInSearchUrl}`)
     
     // Build search parameters for curious_coder/linkedin-jobs-scraper
-    // This actor requires 'urls' field with LinkedIn job search URLs
-    // Reduced maxItems for faster results in Vercel serverless environment
+    // Based on Python example: urls, scrapeCompany, count, splitByLocation, splitCountry
     const searchParams: any = {
       urls: [linkedInSearchUrl],  // Required: array of LinkedIn job search URLs
-      maxItems: 50,  // Further reduced for faster scraping in Vercel (was 250, then 100)
-      limit: 50       // Further reduced for faster scraping
+      scrapeCompany: true,       // Scrape company information
+      count: 50,                  // Number of jobs to scrape (reduced for Vercel)
+      splitByLocation: false,     // Don't split results by location
+      splitCountry: null          // No country splitting
     }
 
     // Verify actor exists and get its input schema

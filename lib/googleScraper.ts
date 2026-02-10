@@ -69,18 +69,27 @@ export async function searchGoogleJobs(
     console.log('✅ Apify client initialized')
     
     // Use johnvc/Google-Jobs-Scraper actor
+    // Actor ID: CkLDY9GAQf6QlP6GP (johnvc/Google-Jobs-Scraper)
+    // Can also use username/actor-name format: johnvc/Google-Jobs-Scraper
     const actorId = process.env.APIFY_GOOGLE_ACTOR_ID || 'johnvc/Google-Jobs-Scraper'
     
     console.log('Starting Apify Google Jobs search...')
     console.log(`Searching for: ${keywords} in ${location}`)
     
-    // Build search parameters for Google Jobs Scraper
-    // Check the actor's input schema - typically expects query, location, maxResults
-    // Reduced maxResults for faster scraping in Vercel serverless environment
+    // Build search parameters for johnvc/Google-Jobs-Scraper
+    // Based on Python example: query, location, country, language, google_domain, num_results, etc.
     const searchParams: any = {
       query: keywords,
       location: location,
-      maxResults: 50,  // Further reduced for faster scraping in Vercel (was 250, then 100)
+      country: "None",           // No country filter
+      language: "None",           // No language filter
+      google_domain: "google.com", // Use google.com domain
+      num_results: 50,            // Number of results (reduced for Vercel)
+      max_pagination: 0,          // No pagination (get first page only for speed)
+      include_lrad: false,        // Don't include LRAD filter
+      lrad_value: "5",            // LRAD value (not used if include_lrad is false)
+      max_delay: 1,               // Max delay between requests
+      output_file: null           // Don't save to file (we'll use dataset)
     }
 
     // Verify actor exists
