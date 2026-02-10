@@ -19,43 +19,73 @@ export default function Home() {
   const [jobs, setJobs] = useState<JobPosting[]>([])
   const [loading, setLoading] = useState(false)
   const [dateRange, setDateRange] = useState<string>('7') // Default: 7 days
+  const [isHydrated, setIsHydrated] = useState(false)
   const [jobsFromStorage, setJobsFromStorage] = useState(false)
   const [storedJobsInfo, setStoredJobsInfo] = useState<{
     count: number
     searchDate: string
     available: boolean
   } | null>(null)
+  const [allStoredJobs, setAllStoredJobs] = useState<Array<{
+    dateRange: string
+    count: number
+    searchDate: string
+    dateRangeInfo: { from: string; to: string; fromFormatted: string; toFormatted: string }
+  }>>([])
   const [searchInfo, setSearchInfo] = useState<{ 
     role?: string
     totalJobs?: number
     dateRange?: { from: string; to: string; fromFormatted: string; toFormatted: string }
   } | null>(null)
 
-  // Check for stored jobs on mount and when date range changes
+  // Hydrate dateRange from localStorage (so refresh uses the same range you searched with)
   useEffect(() => {
-    const checkStoredJobs = () => {
-      const stored = loadJobsFromStorage(dateRange)
-      
-      if (stored && stored.jobs.length > 0) {
-        setStoredJobsInfo({
-          count: stored.jobs.length,
-          searchDate: stored.metadata?.searchDate || new Date().toISOString(),
-          available: true
-        })
-      } else {
-        setStoredJobsInfo({
-          count: 0,
-          searchDate: '',
-          available: false
-        })
-      }
+    try {
+      const savedRange = localStorage.getItem('jobsearch_dateRange')
+      if (savedRange) setDateRange(savedRange)
+    } catch {
+      // ignore
+    } finally {
+      setIsHydrated(true)
     }
-    
-    checkStoredJobs()
-  }, [dateRange])
+  }, [])
 
-  // Load stored jobs on mount if available
+  const refreshStoredJobsUI = () => {
+    const stored = loadJobsFromStorage(dateRange)
+
+    if (stored && stored.jobs.length > 0) {
+      setStoredJobsInfo({
+        count: stored.jobs.length,
+        searchDate: stored.metadata?.searchDate || new Date().toISOString(),
+        available: true
+      })
+    } else {
+      setStoredJobsInfo({
+        count: 0,
+        searchDate: '',
+        available: false
+      })
+    }
+
+    setAllStoredJobs(getAllStoredJobsMetadata())
+  }
+
+  // Persist dateRange selection + refresh storage UI whenever range changes (after hydration)
   useEffect(() => {
+    if (!isHydrated) return
+    try {
+      localStorage.setItem('jobsearch_dateRange', dateRange)
+    } catch {
+      // ignore
+    }
+    refreshStoredJobsUI()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateRange, isHydrated])
+
+  // Load stored jobs on initial mount (after hydration) if available
+  useEffect(() => {
+    if (!isHydrated) return
+
     const stored = loadJobsFromStorage(dateRange)
     if (stored && stored.jobs.length > 0 && stored.metadata) {
       setJobs(stored.jobs)
@@ -64,10 +94,10 @@ export default function Home() {
         totalJobs: stored.metadata.totalJobs,
         dateRange: stored.metadata.dateRangeInfo
       })
-      // If we have stored jobs, move to upload step
       setStep('upload')
     }
-  }, []) // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHydrated])
 
   // Load stored jobs function
   const loadStoredJobs = () => {
@@ -85,6 +115,7 @@ export default function Home() {
         
         // Move to upload step
         setStep('upload')
+        refreshStoredJobsUI()
       } else {
         alert('No stored jobs found for this date range. Please search for new jobs.')
       }
@@ -163,12 +194,7 @@ export default function Home() {
       if (fetchedJobs.length > 0) {
         try {
           saveJobsToStorage(dateRange, fetchedJobs, data.totalJobs, dateRangeInfo)
-          // Update stored jobs info
-          setStoredJobsInfo({
-            count: fetchedJobs.length,
-            searchDate: new Date().toISOString(),
-            available: true
-          })
+          refreshStoredJobsUI()
         } catch (storageError) {
           console.error('Error saving jobs to storage:', storageError)
           // Don't block the user flow if storage fails
@@ -254,29 +280,7 @@ export default function Home() {
     setJobs([])
     setSearchInfo(null)
     setJobsFromStorage(false)
-    // Re-check for stored jobs after reset
-    const checkStoredJobs = async () => {
-      try {
-        const response = await fetch(`/api/jobs-storage?dateRange=${dateRange}`)
-        const data = await response.json()
-        if (data.success && data.jobs && data.jobs.length > 0 && data.fromStorage) {
-          setStoredJobsInfo({
-            count: data.jobs.length,
-            searchDate: data.searchDate || new Date().toISOString(),
-            available: true
-          })
-        } else {
-          setStoredJobsInfo({
-            count: 0,
-            searchDate: '',
-            available: false
-          })
-        }
-      } catch (error) {
-        console.error('Error checking stored jobs:', error)
-      }
-    }
-    checkStoredJobs()
+    refreshStoredJobsUI()
   }
 
   return (
@@ -319,99 +323,95 @@ export default function Home() {
         
         {step === 'search' && (
           <div className="max-w-2xl mx-auto">
-            {/* Stored Jobs Section */}
-            {storedJobsInfo && storedJobsInfo.available && storedJobsInfo.count > 0 && (
-              <div className="bg-gradient-to-r from-blue-900/50 to-indigo-900/50 border-l-4 border-blue-500 rounded-lg p-6 mb-6 shadow-lg">
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                  <div className="flex items-center flex-1">
-                    <div className="flex-shrink-0">
-                      <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/50">
-                        <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-lg font-semibold text-blue-300">
-                        💾 {storedJobsInfo.count} Jobs Stored in Browser
-                      </p>
-                      <p className="text-sm text-blue-200 mt-1">
-                        Last searched: {new Date(storedJobsInfo.searchDate).toLocaleString()}
-                      </p>
-                      <p className="text-xs text-blue-300/70 mt-1 italic">
-                        Jobs are saved in your browser's localStorage and will persist across page refreshes
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
+            {/* Saved Jobs (always visible) */}
+            <div className="bg-gray-800 rounded-xl shadow-lg p-6 mb-6 border border-gray-700">
+              <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
+                <h3 className="text-lg font-semibold text-white flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                  </svg>
+                  Saved Jobs (this device)
+                </h3>
+                <button
+                  onClick={refreshStoredJobsUI}
+                  className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm transition-colors"
+                >
+                  Refresh
+                </button>
+              </div>
+
+              {storedJobsInfo?.available && storedJobsInfo.count > 0 ? (
+                <div className="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border border-blue-700/50 rounded-lg p-4">
+                  <p className="text-white font-medium">
+                    💾 {storedJobsInfo.count} jobs saved for the selected range ({dateRange} day{dateRange !== '1' ? 's' : ''})
+                  </p>
+                  <p className="text-gray-300 text-sm mt-1">
+                    Last searched: {new Date(storedJobsInfo.searchDate).toLocaleString()}
+                  </p>
+                  <p className="text-gray-400 text-xs mt-1 italic">
+                    These jobs are stored in your browser’s localStorage and persist across refreshes.
+                  </p>
+                  <div className="flex gap-2 mt-3">
                     <button
                       onClick={loadStoredJobs}
                       disabled={loading}
                       className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors disabled:bg-gray-700 disabled:cursor-not-allowed disabled:text-gray-400"
                     >
-                      {loading ? 'Loading...' : 'Load Stored Jobs'}
+                      {loading ? 'Loading...' : 'Load Saved Jobs'}
                     </button>
                     <button
                       onClick={() => {
-                        if (confirm('Are you sure you want to clear stored jobs for this date range?')) {
+                        if (confirm('Clear saved jobs for this date range?')) {
                           clearStoredJobs(dateRange)
-                          setStoredJobsInfo({
-                            count: 0,
-                            searchDate: '',
-                            available: false
-                          })
+                          refreshStoredJobsUI()
                         }
                       }}
                       className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-medium transition-colors"
-                      title="Clear stored jobs"
                     >
                       Clear
                     </button>
                   </div>
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="text-gray-300 text-sm">
+                  <p className="font-medium text-white mb-1">No saved jobs yet for this date range.</p>
+                  <p>
+                    Click <span className="text-blue-300 font-semibold">Search for New Jobs</span> once and we’ll automatically save the results here so refresh won’t wipe them.
+                  </p>
+                </div>
+              )}
 
-            {/* All Stored Jobs Summary */}
-            {(() => {
-              const allStored = getAllStoredJobsMetadata()
-              if (allStored.length > 0) {
-                return (
-                  <div className="bg-gray-800 rounded-xl shadow-lg p-6 mb-6 border border-gray-700">
-                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-                      <svg className="w-5 h-5 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
-                      </svg>
-                      All Stored Jobs ({allStored.length} date range{allStored.length > 1 ? 's' : ''})
-                    </h3>
-                    <div className="space-y-2">
-                      {allStored.map((stored) => (
-                        <div key={stored.dateRange} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
-                          <div>
-                            <p className="text-white font-medium">
-                              {stored.count} jobs • {stored.dateRange} day{stored.dateRange !== '1' ? 's' : ''} range
-                            </p>
-                            <p className="text-gray-400 text-sm">
-                              Searched: {new Date(stored.searchDate).toLocaleString()}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => {
-                              setDateRange(stored.dateRange)
-                              setTimeout(() => loadStoredJobs(), 100)
-                            }}
-                            className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-sm transition-colors"
-                          >
-                            Load
-                          </button>
+              {allStoredJobs.length > 0 && (
+                <div className="mt-5">
+                  <p className="text-gray-300 text-sm font-medium mb-2">
+                    All saved job sets ({allStoredJobs.length})
+                  </p>
+                  <div className="space-y-2">
+                    {allStoredJobs.map((stored) => (
+                      <div key={stored.dateRange} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                        <div>
+                          <p className="text-white font-medium">
+                            {stored.count} jobs • {stored.dateRange} day{stored.dateRange !== '1' ? 's' : ''} range
+                          </p>
+                          <p className="text-gray-400 text-sm">
+                            Searched: {new Date(stored.searchDate).toLocaleString()}
+                          </p>
                         </div>
-                      ))}
-                    </div>
+                        <button
+                          onClick={() => {
+                            setDateRange(stored.dateRange)
+                            setTimeout(() => loadStoredJobs(), 100)
+                          }}
+                          className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-sm transition-colors"
+                        >
+                          Load
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                )
-              }
-              return null
-            })()}
+                </div>
+              )}
+            </div>
 
             <div className="bg-gray-800 rounded-xl shadow-2xl p-8 border border-gray-700">
               <div className="text-center mb-6">
