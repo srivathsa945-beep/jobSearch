@@ -217,6 +217,8 @@ SOLUTIONS:
         console.error('   2. Wait for the monthly limit to reset')
         console.error('   3. Check your usage at https://console.apify.com/account/usage')
         console.error('   4. Consider using a different actor or reducing search frequency')
+        // Re-throw with more context
+        throw new Error(`Apify usage limit exceeded. Check https://console.apify.com/account/usage. Original error: ${error.message}`)
       }
       
       // Check if it's an actor not found error
@@ -228,9 +230,11 @@ SOLUTIONS:
         console.error('   🎭 This looks like the actor was not found!')
         console.error('   Please verify your APIFY_LINKEDIN_ACTOR_ID is correct')
         console.error('   Common actors: apify/linkedin-jobs-scraper, apify/linkedin-jobs-scraper-v2')
+        throw new Error(`LinkedIn actor not found: ${actorId}. Original error: ${error.message}`)
       }
       
-      return []
+      // For other errors, throw instead of returning empty array
+      throw new Error(`LinkedIn scraping failed: ${error instanceof Error ? error.message : String(error)}`)
     }
 
     // Wait for the run to finish (with timeout optimized for Vercel serverless)
@@ -494,9 +498,11 @@ SOLUTIONS:
     return jobPostings
 
   } catch (error) {
-    console.error('Error scraping LinkedIn with Apify:', error)
-    // Return empty array on error - fallback to mock data
-    return []
+    console.error('❌ Error scraping LinkedIn with Apify:', error)
+    console.error('   Error type:', error instanceof Error ? error.constructor.name : typeof error)
+    console.error('   Error message:', error instanceof Error ? error.message : String(error))
+    // Re-throw the error so it can be caught and reported properly
+    throw error
   }
 }
 

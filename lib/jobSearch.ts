@@ -104,48 +104,51 @@ export async function searchJobs(
     )
   }
   
-  try {
-    // Wait for all searches to complete
-    console.log(`⏳ Waiting for ${searchPromises.length} search queries to complete...`)
-    const results = await Promise.all(searchPromises)
-    
-    // Combine all results
-    results.forEach((jobs) => {
-      allJobs.push(...jobs)
-    })
-    
-    console.log(`📊 STEP 2: Total jobs fetched from all sources: ${allJobs.length}`)
-    
-    if (allJobs.length === 0) {
-      console.error('❌ CRITICAL: No jobs returned from ANY source!')
-      console.error('   This means Apify is not returning any data.')
-      console.error('   Possible causes:')
-      console.error('   1. Apify monthly usage limit exceeded (check error messages above)')
-      console.error('   2. Apify actors are not working')
-      console.error('   3. LinkedIn/Google Jobs are blocking scrapers')
-      console.error('   4. Actor input parameters are wrong')
-      console.error('   5. Network/firewall issues')
-      console.error('   Check the Apify run URLs in the logs above for details')
-      console.error('   💡 If you see "Monthly usage hard limit exceeded", upgrade your Apify plan')
-      return {
-        jobs: [],
-        totalJobs: 0,
-        dateRange: {
-          from: daysAgo.toISOString(),
-          to: now.toISOString(),
-          fromFormatted: daysAgo.toLocaleDateString(),
-          toFormatted: now.toLocaleDateString()
-        },
-        filtersApplied: [
-          'Full-time',
-          'No Staffing Companies',
-          'Salary >$100k (or not specified)',
-          'Benefits Mentioned',
-          'End-Client Companies Only',
-          `Posted in last ${days} days`
-        ]
-      }
-    }
+      try {
+        // Wait for all searches to complete
+        console.log(`⏳ Waiting for ${searchPromises.length} search queries to complete...`)
+        const results = await Promise.allSettled(searchPromises)
+        
+        // Log results from each search
+        let totalSuccessful = 0
+        let totalFailed = 0
+        results.forEach((result, index) => {
+          if (result.status === 'fulfilled') {
+            const jobs = result.value
+            allJobs.push(...jobs)
+            totalSuccessful++
+            console.log(`✅ Search ${index + 1}: Successfully fetched ${jobs.length} jobs`)
+          } else {
+            totalFailed++
+            console.error(`❌ Search ${index + 1}: Failed with error:`, result.reason)
+            console.error(`   Error details:`, result.reason instanceof Error ? result.reason.message : String(result.reason))
+          }
+        })
+        
+        console.log(`📊 STEP 2: Search Summary`)
+        console.log(`   Successful searches: ${totalSuccessful}/${searchPromises.length}`)
+        console.log(`   Failed searches: ${totalFailed}/${searchPromises.length}`)
+        console.log(`   Total jobs fetched from all sources: ${allJobs.length}`)
+        
+        if (allJobs.length === 0) {
+          const errorMsg = `No jobs returned from ANY source! ${totalFailed > 0 ? `(${totalFailed} searches failed)` : ''}`
+          console.error(`❌ CRITICAL: ${errorMsg}`)
+          console.error('   This means Apify is not returning any data.')
+          console.error('   Possible causes:')
+          console.error('   1. Apify API token not set or invalid')
+          console.error('   2. Apify monthly usage limit exceeded')
+          console.error('   3. Apify actors are not working or timing out')
+          console.error('   4. LinkedIn/Google Jobs are blocking scrapers')
+          console.error('   5. Actor input parameters are wrong')
+          console.error('   6. Network/firewall issues')
+          console.error('   7. Vercel function timeout (45s may be too short)')
+          console.error('   Check the Apify run URLs in the logs above for details')
+          console.error('   💡 If you see "Monthly usage hard limit exceeded", upgrade your Apify plan')
+          console.error('   💡 Check Vercel logs for detailed error messages from each scraper')
+          
+          // Throw error instead of returning empty - this will be caught and returned with proper error info
+          throw new Error(`No jobs found. ${totalFailed > 0 ? `${totalFailed} search(es) failed. ` : ''}Check Vercel deployment logs for Apify run URLs and error details.`)
+        }
     
     // Remove duplicates based on job title + company (more reliable than ID)
     const uniqueJobs = Array.from(

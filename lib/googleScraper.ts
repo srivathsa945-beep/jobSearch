@@ -163,9 +163,21 @@ export async function searchGoogleJobs(
       )) {
         console.error('   🔐 This looks like an authentication error!')
         console.error('   Please verify your APIFY_API_TOKEN is correct')
+        throw new Error(`Apify authentication failed. Check API token. Original error: ${error.message}`)
       }
       
-      return []
+      // Check for usage limit
+      if (error instanceof Error && (
+        error.message.includes('403') || 
+        error.message.includes('Monthly usage') || 
+        error.message.includes('hard limit exceeded')
+      )) {
+        console.error('   💳 This looks like a usage limit error!')
+        throw new Error(`Apify usage limit exceeded. Check https://console.apify.com/account/usage. Original error: ${error.message}`)
+      }
+      
+      // For other errors, throw instead of returning empty array
+      throw new Error(`Google Jobs scraping failed: ${error instanceof Error ? error.message : String(error)}`)
     }
 
     // Wait for the run to finish (with timeout optimized for Vercel serverless)
@@ -333,7 +345,10 @@ export async function searchGoogleJobs(
 
   } catch (error) {
     console.error('❌ Error scraping Google Jobs with Apify:', error)
-    return []
+    console.error('   Error type:', error instanceof Error ? error.constructor.name : typeof error)
+    console.error('   Error message:', error instanceof Error ? error.message : String(error))
+    // Re-throw the error so it can be caught and reported properly
+    throw error
   }
 }
 
