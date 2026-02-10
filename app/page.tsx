@@ -63,9 +63,18 @@ export default function Home() {
       }
       
       setJobs(data.jobs || [])
+      // Calculate date range based on current selection (not just from API response)
+      const days = parseInt(dateRange) || 7
+      const now = new Date()
+      const daysAgo = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
       setSearchInfo({
         totalJobs: data.totalJobs,
-        dateRange: data.dateRange
+        dateRange: {
+          from: daysAgo.toISOString(),
+          to: now.toISOString(),
+          fromFormatted: daysAgo.toLocaleDateString(),
+          toFormatted: now.toLocaleDateString()
+        }
       })
       
       // If no jobs found, show a helpful message
@@ -114,12 +123,24 @@ export default function Home() {
         throw new Error(data.error || 'Failed to score jobs')
       }
       
-      setMatches(data.matches || [])
-      setSearchInfo({
-        role: data.extractedRole,
-        totalJobs: data.totalJobs,
-        dateRange: data.dateRange
-      })
+          setMatches(data.matches || [])
+          // Preserve date range from search step, or calculate if not available
+          const currentDateRange = searchInfo?.dateRange || (() => {
+            const days = parseInt(dateRange) || 7
+            const now = new Date()
+            const daysAgo = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
+            return {
+              from: daysAgo.toISOString(),
+              to: now.toISOString(),
+              fromFormatted: daysAgo.toLocaleDateString(),
+              toFormatted: now.toLocaleDateString()
+            }
+          })()
+          setSearchInfo({
+            role: data.extractedRole,
+            totalJobs: data.totalJobs,
+            dateRange: currentDateRange
+          })
     } catch (error) {
       console.error('Error scoring jobs:', error)
       alert(error instanceof Error ? error.message : 'Error scoring jobs. Please try again.')
@@ -141,10 +162,10 @@ export default function Home() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">
           <h1 className="text-5xl font-extrabold text-white mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-indigo-400">
-            AI-Powered Job Search Assistant
+            Don't worry, we will get this
           </h1>
           <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-            Find your perfect Project Manager role with intelligent matching and automated application tracking
+            Your perfect Project Manager role is out there. Let's find it together with intelligent matching and automated application tracking.
           </p>
         </div>
 
