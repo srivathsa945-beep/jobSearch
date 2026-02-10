@@ -94,6 +94,7 @@ export async function searchGoogleJobs(
     
     // Build search parameters for johnvc/Google-Jobs-Scraper
     // Based on Python example: query, location, country, language, google_domain, num_results, etc.
+    // NOTE: The actor requires output_file to be a string (not null)
     const searchParams: any = {
       query: keywords,
       location: location,
@@ -105,7 +106,7 @@ export async function searchGoogleJobs(
       include_lrad: false,        // Don't include LRAD filter
       lrad_value: "5",            // LRAD value (not used if include_lrad is false)
       max_delay: 1,               // Max delay between requests
-      output_file: null           // Don't save to file (we'll use dataset)
+      output_file: "google_jobs_results.json"  // Required: must be a string (actor validation)
     }
 
     // Verify actor exists
